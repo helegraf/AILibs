@@ -3,7 +3,6 @@ package de.upb.crc901.mlplan.examples;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
@@ -19,15 +18,18 @@ import hasco.core.HASCOProblemReduction;
 import hasco.core.Util;
 import hasco.model.ComponentInstance;
 import hasco.serialization.ComponentLoader;
+import jaicore.graphvisualizer.SimpleGraphVisualizationWindow;
 import jaicore.ml.WekaUtil;
 import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
 import jaicore.ml.evaluation.MulticlassEvaluator;
 import jaicore.planning.algorithms.forwarddecomposition.ForwardDecompositionHTNPlannerFactory;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
+import jaicore.planning.graphgenerators.task.tfd.TFDTooltipGenerator;
 import jaicore.search.algorithms.standard.core.ORGraphSearch;
 import jaicore.search.algorithms.standard.lds.BestFirstLimitedDiscrepancySearch;
 import jaicore.search.algorithms.standard.lds.NodeOrderList;
 import jaicore.search.structure.core.GraphGenerator;
+import jaicore.search.structure.core.Node;
 import weka.core.Instances;
 
 /**
@@ -41,7 +43,7 @@ public class MetaMinerExample {
 	public static void main(String[] args) throws Exception {
 		/* load data for segment dataset and create a train-test-split */
 		OpenmlConnector connector = new OpenmlConnector();
-		DataSetDescription ds = connector.dataGet(40985);
+		DataSetDescription ds = connector.dataGet(40984);
 		File file = ds.getDataset("4350e421cdc16404033ef1812ea38c01");
 		Instances data = new Instances(new BufferedReader(new FileReader(file)));
 		data.setClassIndex(data.numAttributes() - 1);
@@ -58,7 +60,7 @@ public class MetaMinerExample {
 		GraphGenerator<TFDNode, String> graphGenerator = reduction
 				.getGraphGeneratorUsedByHASCOForSpecificPlanner(new ForwardDecompositionHTNPlannerFactory<Double>());
 		ORGraphSearch<TFDNode, String,NodeOrderList> lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator, (n1,n2) -> -1);
-//		new SimpleGraphVisualizationWindow<>(lds);
+		new SimpleGraphVisualizationWindow<>(lds).getPanel().setTooltipGenerator(new TFDTooltipGenerator());;
 		TimerTask tt = new TimerTask() {
 			
 			@Override
@@ -66,7 +68,7 @@ public class MetaMinerExample {
 				lds.cancel();
 			}
 		};
-		new Timer().schedule(tt, 20000);
+		new Timer().schedule(tt, 120000);
 		MLPipeline currentlyBestSolution = null;
 		double bestScore = 1;
 		while (!lds.isInterrupted()) {

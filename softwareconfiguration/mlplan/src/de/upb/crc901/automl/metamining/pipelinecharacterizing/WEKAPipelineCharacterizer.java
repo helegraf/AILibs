@@ -4,18 +4,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.math3.geometry.euclidean.oned.Interval;
+import org.apache.commons.math3.geometry.partitioning.Region.Location;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import de.upb.crc901.automl.hascowekaml.WEKAPipelineFactory;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import de.upb.crc901.automl.pipeline.basic.SupervisedFilterSelector;
+import hasco.core.Util;
 import hasco.model.ComponentInstance;
+import hasco.model.NumericParameterDomain;
 import hasco.serialization.ComponentLoader;
 import treeminer.FrequentSubtreeFinder;
 import treeminer.TreeMiner;
 import treeminer.TreeRepresentationUtils;
-import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 
 /**
  * A characterizer for MLPipelines that characterizes them using an ontology and
@@ -139,34 +141,51 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	protected List<String> getParametersForComponentInstance(ComponentInstance classifier) {
 		List<String> parameters = new ArrayList<String>();
 
-//		// Check if classifier has options
-//		if (classifier instanceof AbstractClassifier) {
-//			AbstractClassifier abstractClassifier = (AbstractClassifier) classifier;
-//			if (abstractClassifier.getOptions() != null && abstractClassifier.getOptions().length > 0) {
-//
-//				// Get options
-//				abstractClassifier.getOptions();
-//				// TODO
-//
-//				componentLoader.getParamConfigs();
-//			}
-//		}
-		
-		componentLoader.getParamConfigs().get(classifier).forEach((parameter, parameterRefinementConfiguration)-> {
+		componentLoader.getParamConfigs().get(classifier).forEach((parameter, parameterRefinementConfiguration) -> {
 			String parameterName = parameter.getName();
 			List<String> parameterRefinement = new ArrayList<String>();
-			
-			// Categorical parameter
+
+			// Categorical parameter - just take the value
 			if (parameter.isCategorical()) {
 				parameterRefinement.add(classifier.getParameterValues().get(parameterName));
-				
-			// Numeric parameter
+
+				// Numeric parameter - needs to be refined
 			} else {
-				
+				NumericParameterDomain parameterDomain = ((NumericParameterDomain) parameter.getDefaultDomain());
+				Interval currentInterval = null;
+				Interval nextInterval = new Interval(parameterDomain.getMin(), parameterDomain.getMax());
+				double parameterValue = Double.parseDouble(classifier.getParameterValues().get(parameterName));
+				double precision = parameterValue == 0 ? 0 : Math.ulp(parameterValue);
+
+				while (currentInterval != nextInterval) {
+					currentInterval = nextInterval;
+					parameterRefinement.add(serializeInterval(currentInterval));
+
+					List<Interval> refinement = Util.getNumericParameterRefinement(nextInterval, parameterValue,
+							parameterDomain.isInteger(), parameterRefinementConfiguration);
+
+					for (Interval interval : refinement) {
+						if (interval.checkPoint(parameterValue, precision) == Location.INSIDE
+								|| interval.checkPoint(parameterValue, precision) == Location.BOUNDARY) {
+							nextInterval = interval;
+							break;
+						}
+					}
+				}
 			}
 		});
 
 		return parameters;
+	}
+
+	protected String serializeInterval(Interval interval) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[");
+		builder.append(interval.getInf());
+		builder.append(",");
+		builder.append(interval.getSup());
+		builder.append("]");
+		return builder.toString();
 	}
 
 	@Override
