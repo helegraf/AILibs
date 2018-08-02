@@ -3,6 +3,7 @@ package de.upb.crc901.automl.metamining.pipelinecharacterizing;
 import java.util.List;
 
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
+import hasco.model.ComponentInstance;
 
 /**
  * Finds patterns in given MLPipelines. A pipeline characterizer first has to be
@@ -21,7 +22,7 @@ public interface IPipelineCharacterizer {
 	 * @param pipelines
 	 *            The pipelines to go though for patterns
 	 */
-	public void build(List<MLPipeline> pipelines);
+	public void build(List<ComponentInstance> pipelines);
 
 	/**
 	 * Checks which of the found patterns (found during the training phase in
@@ -34,11 +35,11 @@ public interface IPipelineCharacterizer {
 	 *            The pipeline for which pattern occurrence is checked
 	 * @return A list representing pattern occurrences in the pipeline
 	 */
-	public double[] characterize(MLPipeline pipeline);
+	public double[] characterize(ComponentInstance pipeline);
 
 	/**
-	 * For each {@link MLPipeline} that was used in the training, return which found
-	 * pattern (found during the training phase in
+	 * For each {@link MLPipeline} that was used in the training (given by its
+	 * ComponentInstance), return which found pattern (found during the training phase in
 	 * {@link IPipelineCharacterizer#build(List)}) occurs in which pipeline.
 	 * 
 	 * If in the returned matrix m, m[i][j]=1, pattern p occurs in training pipeline

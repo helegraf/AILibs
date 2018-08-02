@@ -14,6 +14,7 @@ import de.upb.crc901.automl.metamining.similaritymeasures.F3Optimizer;
 import de.upb.crc901.automl.metamining.similaritymeasures.IHeterogenousSimilarityMeasureComputer;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import hasco.metamining.IMetaMiner;
+import hasco.model.Component;
 import hasco.model.ComponentInstance;
 import hasco.serialization.ComponentLoader;
 import weka.core.Attribute;
@@ -31,11 +32,13 @@ public class WEKAMetaminer implements IMetaMiner {
 	private String metafeatureSet = "all";
 
 	private IHeterogenousSimilarityMeasureComputer similarityMeasure = new F3Optimizer(0.1);
-	private IPipelineCharacterizer pipelineCharacterizer = new WEKAPipelineCharacterizer();
+	private IPipelineCharacterizer pipelineCharacterizer;
 	private ComponentLoader componentLoader;
 
-	public WEKAMetaminer(Instances dataset) {
+	public WEKAMetaminer(Instances dataset, ComponentLoader componentLoader) {
 		this.dataset = dataset;
+		this.componentLoader = componentLoader;
+		this.pipelineCharacterizer = new WEKAPipelineCharacterizer(componentLoader);
 	}
 
 	@Override
@@ -45,7 +48,7 @@ public class WEKAMetaminer implements IMetaMiner {
 		}
 		try {
 			MLPipeline pipeline = wekaPipelineFactory.getComponentInstantiation(componentInstance);
-			double[] pipelineMetafeatures = pipelineCharacterizer.characterize(pipeline);
+			double[] pipelineMetafeatures = pipelineCharacterizer.characterize(componentInstance);
 			return similarityMeasure.computeSimilarity(datasetMetafeatures, Nd4j.create(pipelineMetafeatures));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -92,7 +95,7 @@ public class WEKAMetaminer implements IMetaMiner {
 		INDArray rankMatrix = null;
 		// Extract list of distinct pipelines from that (or purposefully get a only
 		// samples for a list of pipelines before!)
-		ArrayList<MLPipeline> distinctPipelines = new ArrayList<MLPipeline>();
+		ArrayList<ComponentInstance> distinctPipelines = new ArrayList<ComponentInstance>();
 
 		// Initialize PipelineCharacterizer with list of distinct pipelines
 		pipelineCharacterizer.build(distinctPipelines);

@@ -6,8 +6,11 @@ import java.util.List;
 
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
+import de.upb.crc901.automl.hascowekaml.WEKAPipelineFactory;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import de.upb.crc901.automl.pipeline.basic.SupervisedFilterSelector;
+import hasco.model.ComponentInstance;
+import hasco.serialization.ComponentLoader;
 import treeminer.FrequentSubtreeFinder;
 import treeminer.TreeMiner;
 import treeminer.TreeRepresentationUtils;
@@ -30,9 +33,13 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	private String preprocessorSubTreeName = "Preprocessor";
 	private String preprocessorsSubTreeName = "Preprocessors";
 	private String pipelineTreeName = "Pipeline";
+	private ComponentLoader componentLoader;
+	private WEKAPipelineFactory wekaPipelineFactory = new WEKAPipelineFactory();
 
-	public WEKAPipelineCharacterizer() {
-		treeMiner = new TreeMiner();
+	public WEKAPipelineCharacterizer(ComponentLoader componentLoader) {
+		this.treeMiner = new TreeMiner();
+		this.componentLoader = componentLoader;
+
 		try {
 			ontologyConnector = new WEKAOntologyConnector();
 		} catch (OWLOntologyCreationException e) {
@@ -42,11 +49,17 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	}
 
 	@Override
-	public void build(List<MLPipeline> pipelines) {
+	public void build(List<ComponentInstance> pipelines) {
 		// Convert the pipelines to String representations
 		List<String> pipelineRepresentations = new ArrayList<String>();
 		pipelines.forEach(pipeline -> {
-			pipelineRepresentations.add(makeStringTreeRepresentation(pipeline));
+			// TODO remove this workaround
+			try {
+				pipelineRepresentations.add(makeStringTreeRepresentation(pipeline));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		});
 
 		// Use the tree miner to find patterns
@@ -54,9 +67,16 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	}
 
 	@Override
-	public double[] characterize(MLPipeline pipeline) {
+	public double[] characterize(ComponentInstance pipeline) {
 		// Make tree representation from this pipeline
-		String treeRepresentation = makeStringTreeRepresentation(pipeline);
+		String treeRepresentation = null;
+		// TODO remove this workaroundd
+		try {
+			treeRepresentation = makeStringTreeRepresentation(pipeline);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// Ask the treeMiner which of the patterns are included in this pipeline
 		double[] pipelineCharacterization = new double[patterns.length];
@@ -77,13 +97,15 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 * 
 	 * @param pipeline
 	 * @return
+	 * @throws Exception
 	 */
-	protected String makeStringTreeRepresentation(MLPipeline pipeline) {
+	protected String makeStringTreeRepresentation(ComponentInstance pipeline) throws Exception {
 		// TODO add hyperparameters of the algorithms
+		MLPipeline pipelineWEKA = wekaPipelineFactory.getComponentInstantiation(pipeline);
 
 		// Get annotations for preprocessors
 		List<String> preprocessorsSubTree = new ArrayList<String>();
-		List<SupervisedFilterSelector> preprocessors = pipeline.getPreprocessors();
+		List<SupervisedFilterSelector> preprocessors = pipelineWEKA.getPreprocessors();
 		preprocessors.forEach(preprocessor -> {
 			// Get searcher annotation
 			String searcher = preprocessor.getSearcher().getClass().getName();
@@ -105,7 +127,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 				preprocessorsSubTree);
 
 		// Get annotations for classifier
-		String classifier = pipeline.getBaseClassifier().getClass().getName();
+		String classifier = pipelineWEKA.getBaseClassifier().getClass().getName();
 		List<String> classifierBranch = ontologyConnector.getAncestorsOfClassifier(classifier);
 		String classifierBranchRepresentation = TreeRepresentationUtils.makeRepresentationForBranch(classifierBranch);
 
@@ -113,21 +135,37 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		return TreeRepresentationUtils.addChildrenToNode(pipelineTreeName,
 				Arrays.asList(preprocessorsSubTreeRepresentation, classifierBranchRepresentation));
 	}
-	
-	private List<String> getParametersForClassifier(Classifier classifier) {
+
+	protected List<String> getParametersForComponentInstance(ComponentInstance classifier) {
 		List<String> parameters = new ArrayList<String>();
+
+//		// Check if classifier has options
+//		if (classifier instanceof AbstractClassifier) {
+//			AbstractClassifier abstractClassifier = (AbstractClassifier) classifier;
+//			if (abstractClassifier.getOptions() != null && abstractClassifier.getOptions().length > 0) {
+//
+//				// Get options
+//				abstractClassifier.getOptions();
+//				// TODO
+//
+//				componentLoader.getParamConfigs();
+//			}
+//		}
 		
-		// Check if classifier has options
-		if (classifier instanceof AbstractClassifier) {
-			AbstractClassifier abstractClassifier = (AbstractClassifier) classifier;
-			if (abstractClassifier.getOptions() != null && abstractClassifier.getOptions().length > 0) {
+		componentLoader.getParamConfigs().get(classifier).forEach((parameter, parameterRefinementConfiguration)-> {
+			String parameterName = parameter.getName();
+			List<String> parameterRefinement = new ArrayList<String>();
+			
+			// Categorical parameter
+			if (parameter.isCategorical()) {
+				parameterRefinement.add(classifier.getParameterValues().get(parameterName));
 				
-				// Get options
-				abstractClassifier.getOptions();
-				//TODO
+			// Numeric parameter
+			} else {
+				
 			}
-		} 
-		
+		});
+
 		return parameters;
 	}
 
