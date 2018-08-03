@@ -1,6 +1,7 @@
 package de.upb.crc901.automl.metamining.pipelinecharacterizing;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math3.geometry.euclidean.oned.Interval;
@@ -155,18 +156,29 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 
 	protected List<String> getParametersForComponentInstance(ComponentInstance componentInstance) {
 		List<String> parameters = new ArrayList<String>();
-	
-		if (componentInstance.getComponent().getName().contains("weka.classifiers.functions.SMO")) {
-			System.out.println(componentInstance.getComponent().getName());
-			System.out.println(componentInstance.getParameterValues());
-			System.out.println(componentInstance.getSatisfactionOfRequiredInterfaces());
+
+		// Get Parameters of base classifier if this is a meta classifier
+		if (componentInstance.getSatisfactionOfRequiredInterfaces() != null
+				&& componentInstance.getSatisfactionOfRequiredInterfaces().size() > 0) {
+			componentInstance.getSatisfactionOfRequiredInterfaces().forEach((requiredInterface, component) -> {
+				// so far, only have the "K" interface & this has no param so can directly get
+				// it but in the future all these large methods should maybe be made smaller &
+				// more general
+
+				List<String> kernelFunctionCharacterisation = Arrays.asList(requiredInterface);
+				kernelFunctionCharacterisation
+						.addAll(ontologyConnector.getAncestorsOfkernelFunction(component.getComponent().getName()));
+				parameters.add(TreeRepresentationUtils.addChildrenToNode(requiredInterface, Arrays
+						.asList(TreeRepresentationUtils.makeRepresentationForBranch(kernelFunctionCharacterisation))));
+			});
 		}
 
+		// Get other parameters
 		componentInstance.getComponent().getParameters().forEach(parameter -> {
 			String parameterName = parameter.getName();
 			List<String> parameterRefinement = new ArrayList<String>();
 			parameterRefinement.add(parameterName);
-			
+
 			// Numeric parameter - needs to be refined
 			if (parameter.isNumeric()) {
 				ParameterRefinementConfiguration parameterRefinementConfiguration = componentLoader.getParamConfigs()
@@ -206,8 +218,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 			parameters.add(TreeRepresentationUtils.makeRepresentationForBranch(parameterRefinement));
 		});
 
-	return parameters;
-
+		return parameters;
 	}
 
 	protected String serializeInterval(Interval interval) {
@@ -270,7 +281,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 			ComponentInstance pipelie = Util.getSolutionCompositionFromState(componentLoader.getComponents(),
 					i1.getState());
 			if (pipelie != null) {
-				makeStringTreeRepresentation(pipelie);
+				System.out.println(makeStringTreeRepresentation(pipelie));
 			} else {
 				System.err.println("Pipeline is null. (state of node: " + i1.getState() + ")");
 			}

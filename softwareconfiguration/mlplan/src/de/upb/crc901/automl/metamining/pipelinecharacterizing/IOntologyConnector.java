@@ -43,8 +43,20 @@ public interface IOntologyConnector {
 	 * 
 	 * @param evaluatorName
 	 *            The evaluator for which to get the ancestors
-	 * @return The ancestors of the evaluator from farthest to the evaluator itself<
+	 * @return The ancestors of the evaluator from farthest to the evaluator itself
 	 */
 	public List<String> getAncestorsOfEvaluator(String evaluatorName);
+
+	/**
+	 * Gets the ancestor concepts of this kernel function including the kernel
+	 * function itself from most general to most specific concept. The
+	 * kernelFunctionName must be the name of an individual that is a kernel
+	 * function in the ontology.
+	 * 
+	 * @param kernelFunctionName
+	 *            The kernel function for which to get the ancestors
+	 * @return The ancestors of the evaluator from farthest to the evaluator itself
+	 */
+	public List<String> getAncestorsOfkernelFunction(String kernelFunctionName);
 
 }

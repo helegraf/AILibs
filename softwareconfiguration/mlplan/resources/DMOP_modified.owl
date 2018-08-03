@@ -6205,14 +6205,6 @@ uniform distribution. (e.g. 5% for a binary value)</rdfs:comment>
     
 
 
-    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EnsembleMethod -->
-
-    <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EnsembleMethod">
-        <rdfs:subClassOf rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#ModelingAlgorithm"/>
-    </owl:Class>
-    
-
-
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EntropyBasedFSAlgorithm -->
 
     <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EntropyBasedFSAlgorithm">
@@ -18208,6 +18200,14 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     
 
 
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.SimpleLinearRegression -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.SimpleLinearRegression">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#RegressionModelingAlgorithm"/>
+    </owl:NamedIndividual>
+    
+
+
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.SimpleLogistic -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.SimpleLogistic">
@@ -18220,6 +18220,38 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.VotedPerceptron">
         <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#NeuralNetworkAlgorithm"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.NormalizedPolyKernel -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.NormalizedPolyKernel">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#KernelFunction"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.PolyKernel -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.PolyKernel">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#KernelFunction"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.Puk -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.Puk">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#KernelFunction"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.RBFKernel -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.functions.supportVector.RBFKernel">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#KernelFunction"/>
     </owl:NamedIndividual>
     
 
@@ -18336,6 +18368,14 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     
 
 
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.rules.M5Rules -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.rules.M5Rules">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#ClassificationRuleInductionAlgorithm"/>
+    </owl:NamedIndividual>
+    
+
+
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.rules.OneR -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.rules.OneR">
@@ -18380,6 +18420,14 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.trees.LMT">
         <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MultivariateTreeInductionAlgorithm"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.trees.M5P -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.trees.M5P">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#RegressionModelingAlgorithm"/>
     </owl:NamedIndividual>
     
 

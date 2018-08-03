@@ -38,7 +38,9 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 			"weka.classifiers.meta.RandomSubSpace", "weka.classifiers.meta.RandomCommittee",
 			"weka.classifiers.meta.MultiClassClassifier", "weka.classifiers.meta.LogitBoost",
 			"weka.classifiers.meta.ClassificationViaRegression", "weka.classifiers.meta.Bagging",
-			"weka.classifiers.meta.AdditiveRegression", "weka.classifiers.meta.AdaBoostM1");
+			"weka.classifiers.meta.AdditiveRegression", "weka.classifiers.meta.AdaBoostM1",
+			"weka.classifiers.trees.M5P", "weka.classifiers.rules.M5Rules",
+			"weka.classifiers.functions.SimpleLinearRegression");
 
 	private static final List<String> evaluatorPortfolio = Arrays.asList("weka.attributeSelection.CfsSubsetEval",
 			"weka.attributeSelection.CorrelationAttributeEval", "weka.attributeSelection.GainRatioAttributeEval",
@@ -49,6 +51,11 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	private static final List<String> searcherPortfolio = Arrays.asList("weka.attributeSelection.BestFirst",
 			"weka.attributeSelection.GreedyStepwise", "weka.attributeSelection.Ranker");
 
+	private static final List<String> kernelFunctionPortfolio = Arrays.asList(
+			"weka.classifiers.functions.supportVector.Puk", "weka.classifiers.functions.supportVector.RBFKernel",
+			"weka.classifiers.functions.supportVector.PolyKernel",
+			"weka.classifiers.functions.supportVector.NormalizedPolyKernel");
+
 	private static final String ontologyFileName = "DMOP_modified.owl";
 	private static final String ontologyIRI = "http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl";
 	private static final String ontologyIRISeparator = "#";
@@ -56,6 +63,7 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	private String classifierTopNode = "ModelingAlgorithm";
 	private String searcherTopNode = "SearchStrategy";
 	private String evaluatorTopNode = "DataProcessingAlgorithm";
+	private String kernelFunctionTopNode = "KernelFunction";
 
 	private OWLDataFactory dataFactory;
 	private OWLOntology ontology;
@@ -105,6 +113,17 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 			throw new IllegalArgumentException(builder.toString());
 		}
 		return getAncestorsOfAlgorithmUntil(evaluator, evaluatorTopNode);
+	}
+
+	@Override
+	public List<String> getAncestorsOfkernelFunction(String kernelFunctionName) {
+		if (!kernelFunctionPortfolio.contains(kernelFunctionName)) {
+			StringBuilder builder = new StringBuilder();
+			builder.append(kernelFunctionName);
+			builder.append(" is not supported by the used ontology.");
+			throw new IllegalArgumentException(builder.toString());
+		}
+		return getAncestorsOfAlgorithmUntil(kernelFunctionName, kernelFunctionTopNode);
 	}
 
 	/**
@@ -203,7 +222,7 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	 * Get the fully qualified names of WEKA ASSearch algorithms that this ontology
 	 * can be queried for.
 	 * 
-	 * @return THe available searchers
+	 * @return The available searchers
 	 */
 	public List<String> getAvailableSearchers() {
 		return searcherPortfolio;
@@ -213,10 +232,20 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	 * Get the fully qualified names of WEKA ASEvaluation algorithms that this
 	 * ontology can be queried for.
 	 * 
-	 * @return The evailable evaluators
+	 * @return The available evaluators
 	 */
 	public List<String> getAvailableEvaluators() {
 		return evaluatorPortfolio;
+	}
+
+	/**
+	 * Get the fully qualified names of kernel functions that this ontology can be
+	 * queried for
+	 * 
+	 * @return
+	 */
+	public List<String> getAvailableKernelFunctions() {
+		return kernelFunctionPortfolio;
 	}
 
 	public static void main(String[] args) throws OWLOntologyCreationException {

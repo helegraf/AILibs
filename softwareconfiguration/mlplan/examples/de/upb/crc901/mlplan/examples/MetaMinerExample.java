@@ -83,8 +83,7 @@ public class MetaMinerExample {
 			MLPipeline pl = factory.getComponentInstantiation(ci);
 			MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(new MulticlassEvaluator(new Random(0)), 3, split.get(0), .7f);
 			double score = mccv.evaluate(pl);
-			System.out.println(pl);
-			System.out.println(score);
+			System.out.println(score + " " + pl);
 			if (score < bestScore) {
 				currentlyBestSolution = pl;
 				bestScore = score;
