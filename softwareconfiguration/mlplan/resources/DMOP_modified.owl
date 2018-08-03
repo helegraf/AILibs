@@ -6205,6 +6205,14 @@ uniform distribution. (e.g. 5% for a binary value)</rdfs:comment>
     
 
 
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EnsembleMethod -->
+
+    <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EnsembleMethod">
+        <rdfs:subClassOf rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#ModelingAlgorithm"/>
+    </owl:Class>
+    
+
+
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EntropyBasedFSAlgorithm -->
 
     <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#EntropyBasedFSAlgorithm">
@@ -8833,6 +8841,14 @@ incremental clustering algorithm are noniterative.</rdfs:comment>
 
     <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MedianValueRegressor">
         <rdfs:subClassOf rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#BaselineRegressor"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod -->
+
+    <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod">
+        <rdfs:subClassOf rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#ModelingAlgorithm"/>
     </owl:Class>
     
 
@@ -18220,6 +18236,86 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.lazy.KStar">
         <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#KNearestNeighborAlgorithm"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.AdaBoostM1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.AdaBoostM1">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.AdditiveRegression -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.AdditiveRegression">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Bagging -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Bagging">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.ClassificationViaRegression -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.ClassificationViaRegression">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.LogitBoost -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.LogitBoost">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.MultiClassClassifier -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.MultiClassClassifier">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.RandomCommittee -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.RandomCommittee">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.RandomSubSpace -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.RandomSubSpace">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Stacking -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Stacking">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Vote -->
+
+    <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.classifiers.meta.Vote">
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#MetaMethod"/>
     </owl:NamedIndividual>
     
 

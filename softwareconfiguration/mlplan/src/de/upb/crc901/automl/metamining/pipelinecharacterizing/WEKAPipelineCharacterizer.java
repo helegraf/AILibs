@@ -1,20 +1,18 @@
 package de.upb.crc901.automl.metamining.pipelinecharacterizing;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math3.geometry.euclidean.oned.Interval;
 import org.apache.commons.math3.geometry.partitioning.Region.Location;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import de.upb.crc901.automl.hascowekaml.WEKAPipelineFactory;
-import de.upb.crc901.automl.pipeline.basic.MLPipeline;
-import de.upb.crc901.automl.pipeline.basic.SupervisedFilterSelector;
 import hasco.core.Util;
 import hasco.model.ComponentInstance;
 import hasco.model.NumericParameterDomain;
+import hasco.model.ParameterRefinementConfiguration;
 import hasco.serialization.ComponentLoader;
+import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import treeminer.FrequentSubtreeFinder;
 import treeminer.TreeMiner;
 import treeminer.TreeRepresentationUtils;
@@ -32,11 +30,8 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	private IOntologyConnector ontologyConnector;
 	private String[] patterns;
 	private int minSupport = 1;
-	private String preprocessorSubTreeName = "Preprocessor";
-	private String preprocessorsSubTreeName = "Preprocessors";
 	private String pipelineTreeName = "Pipeline";
 	private ComponentLoader componentLoader;
-	private WEKAPipelineFactory wekaPipelineFactory = new WEKAPipelineFactory();
 
 	public WEKAPipelineCharacterizer(ComponentLoader componentLoader) {
 		this.treeMiner = new TreeMiner();
@@ -102,67 +97,97 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 * @throws Exception
 	 */
 	protected String makeStringTreeRepresentation(ComponentInstance pipeline) throws Exception {
-		// TODO add hyperparameters of the algorithms
-		MLPipeline pipelineWEKA = wekaPipelineFactory.getComponentInstantiation(pipeline);
+		List<String> pipelineBranches = new ArrayList<String>();
 
-		// Get annotations for preprocessors
-		List<String> preprocessorsSubTree = new ArrayList<String>();
-		List<SupervisedFilterSelector> preprocessors = pipelineWEKA.getPreprocessors();
-		preprocessors.forEach(preprocessor -> {
-			// Get searcher annotation
-			String searcher = preprocessor.getSearcher().getClass().getName();
-			List<String> searcherBranch = ontologyConnector.getAncestorsOfSearcher(searcher);
-			String searcherBranchRepresentation = TreeRepresentationUtils.makeRepresentationForBranch(searcherBranch);
+		ComponentInstance classifierCI;
 
-			// Get evaluator annotation
-			String evaluator = preprocessor.getEvaluator().getClass().getName();
-			List<String> evaluatorBranch = ontologyConnector.getAncestorsOfEvaluator(evaluator);
-			String evaluatorBranchRepresentation = TreeRepresentationUtils.makeRepresentationForBranch(evaluatorBranch);
+		// Component is pipeline
+		if (pipeline.getComponent().getName().equals("pipeline")) {
+			ComponentInstance preprocessorCI = pipeline.getSatisfactionOfRequiredInterfaces().get("preprocessor");
 
-			// Merge both annotations
-			String preprocessorSubTree = TreeRepresentationUtils.addChildrenToNode(preprocessorSubTreeName,
-					Arrays.asList(searcherBranchRepresentation, evaluatorBranchRepresentation));
-			preprocessorsSubTree.add(preprocessorSubTree);
-		});
-		// Merge preprocessors
-		String preprocessorsSubTreeRepresentation = TreeRepresentationUtils.addChildrenToNode(preprocessorsSubTreeName,
-				preprocessorsSubTree);
+			if (preprocessorCI != null) {
+				// Get searcher if it has been set
+				ComponentInstance searcherCI = preprocessorCI.getSatisfactionOfRequiredInterfaces().get("search");
+				if (searcherCI != null) {
+					String searcherBranch = TreeRepresentationUtils.makeRepresentationForBranch(
+							ontologyConnector.getAncestorsOfSearcher(searcherCI.getComponent().getName()));
+					searcherBranch = TreeRepresentationUtils.addChildrenToNode(searcherBranch,
+							getParametersForComponentInstance(searcherCI));
+					if (searcherBranch != null) {
+						pipelineBranches.add(searcherBranch);
+					}
+				}
 
-		// Get annotations for classifier
-		String classifier = pipelineWEKA.getBaseClassifier().getClass().getName();
-		List<String> classifierBranch = ontologyConnector.getAncestorsOfClassifier(classifier);
-		String classifierBranchRepresentation = TreeRepresentationUtils.makeRepresentationForBranch(classifierBranch);
+				// Get evaluator if it has been set
+				ComponentInstance evaluatorCI = preprocessorCI.getSatisfactionOfRequiredInterfaces().get("eval");
+				if (evaluatorCI != null) {
+					String evaluatorBranch = TreeRepresentationUtils.makeRepresentationForBranch(
+							ontologyConnector.getAncestorsOfEvaluator(evaluatorCI.getComponent().getName()));
+					evaluatorBranch = TreeRepresentationUtils.addChildrenToNode(evaluatorBranch,
+							getParametersForComponentInstance(evaluatorCI));
+					if (evaluatorBranch != null) {
+						pipelineBranches.add(evaluatorBranch);
+					}
+				}
+			}
 
-		// Merge preprocessors and classifiers
-		return TreeRepresentationUtils.addChildrenToNode(pipelineTreeName,
-				Arrays.asList(preprocessorsSubTreeRepresentation, classifierBranchRepresentation));
+			classifierCI = pipeline.getSatisfactionOfRequiredInterfaces().get("classifier");
+
+			// Component is just a classifier
+		} else {
+			classifierCI = pipeline;
+		}
+
+		// Characterize classifier
+		if (classifierCI != null) {
+			String classifierBranch = TreeRepresentationUtils.makeRepresentationForBranch(
+					ontologyConnector.getAncestorsOfClassifier(classifierCI.getComponent().getName()));
+			classifierBranch = TreeRepresentationUtils.addChildrenToNode(classifierBranch,
+					getParametersForComponentInstance(classifierCI));
+
+			// Add classifier to pipeline representation
+			pipelineBranches.add(classifierBranch);
+		}
+
+		// Put tree together
+		return TreeRepresentationUtils.addChildrenToNode(pipelineTreeName, pipelineBranches);
 	}
 
-	protected List<String> getParametersForComponentInstance(ComponentInstance classifier) {
+	protected List<String> getParametersForComponentInstance(ComponentInstance componentInstance) {
 		List<String> parameters = new ArrayList<String>();
+	
+		if (componentInstance.getComponent().getName().contains("weka.classifiers.functions.SMO")) {
+			System.out.println(componentInstance.getComponent().getName());
+			System.out.println(componentInstance.getParameterValues());
+			System.out.println(componentInstance.getSatisfactionOfRequiredInterfaces());
+		}
 
-		componentLoader.getParamConfigs().get(classifier).forEach((parameter, parameterRefinementConfiguration) -> {
+		componentInstance.getComponent().getParameters().forEach(parameter -> {
 			String parameterName = parameter.getName();
 			List<String> parameterRefinement = new ArrayList<String>();
-
-			// Categorical parameter - just take the value
-			if (parameter.isCategorical()) {
-				parameterRefinement.add(classifier.getParameterValues().get(parameterName));
-
-				// Numeric parameter - needs to be refined
-			} else {
+			parameterRefinement.add(parameterName);
+			
+			// Numeric parameter - needs to be refined
+			if (parameter.isNumeric()) {
+				ParameterRefinementConfiguration parameterRefinementConfiguration = componentLoader.getParamConfigs()
+						.get(componentInstance.getComponent()).get(parameter);
 				NumericParameterDomain parameterDomain = ((NumericParameterDomain) parameter.getDefaultDomain());
 				Interval currentInterval = null;
 				Interval nextInterval = new Interval(parameterDomain.getMin(), parameterDomain.getMax());
-				double parameterValue = Double.parseDouble(classifier.getParameterValues().get(parameterName));
+				double parameterValue = Double.parseDouble(componentInstance.getParameterValues().get(parameterName));
 				double precision = parameterValue == 0 ? 0 : Math.ulp(parameterValue);
 
-				while (currentInterval != nextInterval) {
+				while (nextInterval != null) {
 					currentInterval = nextInterval;
 					parameterRefinement.add(serializeInterval(currentInterval));
 
 					List<Interval> refinement = Util.getNumericParameterRefinement(nextInterval, parameterValue,
 							parameterDomain.isInteger(), parameterRefinementConfiguration);
+
+					if (refinement.size() == 0) {
+						nextInterval = null;
+						break;
+					}
 
 					for (Interval interval : refinement) {
 						if (interval.checkPoint(parameterValue, precision) == Location.INSIDE
@@ -172,10 +197,17 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 						}
 					}
 				}
+				// Categorical parameter
+			} else {
+				if (parameter.isCategorical()) {
+					parameterRefinement.add(componentInstance.getParameterValues().get(parameterName));
+				}
 			}
+			parameters.add(TreeRepresentationUtils.makeRepresentationForBranch(parameterRefinement));
 		});
 
-		return parameters;
+	return parameters;
+
 	}
 
 	protected String serializeInterval(Interval interval) {
@@ -231,6 +263,23 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 */
 	public void setMinSupport(int minSupport) {
 		this.minSupport = minSupport;
+	}
+
+	public int test(TFDNode i1, TFDNode i2) {
+		try {
+			ComponentInstance pipelie = Util.getSolutionCompositionFromState(componentLoader.getComponents(),
+					i1.getState());
+			if (pipelie != null) {
+				makeStringTreeRepresentation(pipelie);
+			} else {
+				System.err.println("Pipeline is null. (state of node: " + i1.getState() + ")");
+			}
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return -1;
 	}
 
 }

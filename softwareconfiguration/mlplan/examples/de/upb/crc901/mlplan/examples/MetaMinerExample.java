@@ -13,6 +13,7 @@ import org.openml.apiconnector.xml.DataSetDescription;
 
 import de.upb.crc901.automl.hascowekaml.HASCOForWekaML;
 import de.upb.crc901.automl.hascowekaml.WEKAPipelineFactory;
+import de.upb.crc901.automl.metamining.pipelinecharacterizing.WEKAPipelineCharacterizer;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import hasco.core.HASCOProblemReduction;
 import hasco.core.Util;
@@ -51,7 +52,6 @@ public class MetaMinerExample {
 		
 		/* initialize mlplan, and let it run for 30 seconds */
 		File configFile = new File("model/weka/weka-all-autoweka.json");
-		HASCOForWekaML hasco = new HASCOForWekaML(configFile);
 		ComponentLoader componentLoader = new ComponentLoader();
 		componentLoader.loadComponents(configFile);
 		
@@ -59,8 +59,10 @@ public class MetaMinerExample {
 		HASCOProblemReduction reduction = new HASCOProblemReduction(configFile, "AbstractClassifier", true);
 		GraphGenerator<TFDNode, String> graphGenerator = reduction
 				.getGraphGeneratorUsedByHASCOForSpecificPlanner(new ForwardDecompositionHTNPlannerFactory<Double>());
-		ORGraphSearch<TFDNode, String,NodeOrderList> lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator, (n1,n2) -> -1);
-		new SimpleGraphVisualizationWindow<>(lds).getPanel().setTooltipGenerator(new TFDTooltipGenerator());;
+		//ORGraphSearch<TFDNode, String,NodeOrderList> lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator, (n1,n2) -> -1);
+		WEKAPipelineCharacterizer chara = new WEKAPipelineCharacterizer(componentLoader);
+		ORGraphSearch<TFDNode, String,NodeOrderList> lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator, (n1,n2) -> chara.test(n1, n1));
+		//new SimpleGraphVisualizationWindow<>(lds).getPanel().setTooltipGenerator(new TFDTooltipGenerator());;
 		TimerTask tt = new TimerTask() {
 			
 			@Override
@@ -89,7 +91,8 @@ public class MetaMinerExample {
 			}
 			}
 			catch (Throwable e) {
-				e.printStackTrace();
+				//e.printStackTrace();
+				System.err.println("Classifier Evaluation error!");
 			}
 		}
 		System.out.println("ready. Best solution: " + currentlyBestSolution);

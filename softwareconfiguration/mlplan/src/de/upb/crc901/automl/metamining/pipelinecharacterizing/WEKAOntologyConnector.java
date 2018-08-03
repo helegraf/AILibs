@@ -34,7 +34,11 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 			"weka.classifiers.rules.OneR", "weka.classifiers.rules.PART", "weka.classifiers.rules.ZeroR",
 			"weka.classifiers.trees.DecisionStump", "weka.classifiers.trees.J48", "weka.classifiers.trees.LMT",
 			"weka.classifiers.trees.RandomForest", "weka.classifiers.trees.RandomTree",
-			"weka.classifiers.trees.REPTree");
+			"weka.classifiers.trees.REPTree", "weka.classifiers.meta.Vote", "weka.classifiers.meta.Stacking",
+			"weka.classifiers.meta.RandomSubSpace", "weka.classifiers.meta.RandomCommittee",
+			"weka.classifiers.meta.MultiClassClassifier", "weka.classifiers.meta.LogitBoost",
+			"weka.classifiers.meta.ClassificationViaRegression", "weka.classifiers.meta.Bagging",
+			"weka.classifiers.meta.AdditiveRegression", "weka.classifiers.meta.AdaBoostM1");
 
 	private static final List<String> evaluatorPortfolio = Arrays.asList("weka.attributeSelection.CfsSubsetEval",
 			"weka.attributeSelection.CorrelationAttributeEval", "weka.attributeSelection.GainRatioAttributeEval",
