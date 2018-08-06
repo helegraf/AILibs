@@ -33,7 +33,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	private FrequentSubtreeFinder treeMiner;
 	private IOntologyConnector ontologyConnector;
 
-	private String[] foundPipelinePatterns;
+	private List<String> foundPipelinePatterns;
 	private int patternMinSupport = 1;
 
 	private String pipelineTreeName = "Pipeline";
@@ -61,7 +61,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		});
 
 		// Use the tree miner to find patterns
-		treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);
+		foundPipelinePatterns = treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);
 	}
 
 	@Override
@@ -70,9 +70,9 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		String treeRepresentation = makeStringTreeRepresentation(pipeline);
 
 		// Ask the treeMiner which of the patterns are included in this pipeline
-		double[] pipelineCharacterization = new double[foundPipelinePatterns.length];
-		for (int i = 0; i < foundPipelinePatterns.length; i++) {
-			if (TreeRepresentationUtils.containsSubtree(treeRepresentation, foundPipelinePatterns[i])) {
+		double[] pipelineCharacterization = new double[foundPipelinePatterns.size()];
+		for (int i = 0; i < foundPipelinePatterns.size(); i++) {
+			if (TreeRepresentationUtils.containsSubtree(treeRepresentation, foundPipelinePatterns.get(i))) {
 				pipelineCharacterization[i] = 1;
 			} else {
 				pipelineCharacterization[i] = 0;

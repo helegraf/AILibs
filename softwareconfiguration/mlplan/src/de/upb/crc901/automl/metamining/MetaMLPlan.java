@@ -20,6 +20,7 @@ import hasco.model.ComponentInstance;
 import jaicore.graphvisualizer.SimpleGraphVisualizationWindow;
 import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
 import jaicore.ml.evaluation.MulticlassEvaluator;
+import jaicore.ml.metafeatures.GlobalCharacterizer;
 import jaicore.planning.algorithms.forwarddecomposition.ForwardDecompositionHTNPlannerFactory;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import jaicore.planning.graphgenerators.task.tfd.TFDTooltipGenerator;
@@ -43,6 +44,7 @@ public class MetaMLPlan extends AbstractClassifier {
 	private long timeoutInMilliseconds = 60000;
 	private Classifier bestModel;
 	private Collection<Component> components;
+	private WEKAMetaminer metaMiner;
 
 	public MetaMLPlan() throws IOException {
 		this(new File("model/weka/weka-all-autoweka.json"));
@@ -55,8 +57,13 @@ public class MetaMLPlan extends AbstractClassifier {
 		GraphGenerator<TFDNode, String> graphGenerator = reduction
 				.getGraphGeneratorUsedByHASCOForSpecificPlanner(new ForwardDecompositionHTNPlannerFactory<Double>());
 		WEKAPipelineCharacterizer chara = new WEKAPipelineCharacterizer(reduction.getParamRefinementConfig());
+		metaMiner = new WEKAMetaminer(reduction.getParamRefinementConfig());
 		lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator,
 				(n1, n2) -> chara.test(n1, n1, reduction.getComponents()));
+	}
+	
+	public void buildMetaComponents() throws Exception {
+		metaMiner.build(null, null, null);
 	}
 
 	@Override
@@ -70,6 +77,9 @@ public class MetaMLPlan extends AbstractClassifier {
 			}
 		};
 		new Timer().schedule(tt, timeoutInMilliseconds);
+		
+		// characterize data set and give to meta miner
+		metaMiner.setDataSetCharacterization(new GlobalCharacterizer().characterize(data));
 
 		// search for solutions
 		bestModel = null;
