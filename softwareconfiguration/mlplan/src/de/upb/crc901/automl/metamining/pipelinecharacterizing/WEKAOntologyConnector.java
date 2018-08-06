@@ -60,10 +60,10 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	private static final String ontologyIRI = "http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl";
 	private static final String ontologyIRISeparator = "#";
 
-	private String classifierTopNode = "ModelingAlgorithm";
-	private String searcherTopNode = "SearchStrategy";
-	private String evaluatorTopNode = "DataProcessingAlgorithm";
-	private String kernelFunctionTopNode = "KernelFunction";
+	private static final String classifierTopNode = "ModelingAlgorithm";
+	private static final String searcherTopNode = "SearchStrategy";
+	private static final String evaluatorTopNode = "DataProcessingAlgorithm";
+	private static final String kernelFunctionTopNode = "KernelFunction";
 
 	private OWLDataFactory dataFactory;
 	private OWLOntology ontology;
@@ -83,47 +83,21 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	}
 
 	@Override
-	public List<String> getAncestorsOfClassifier(String classifierName) {
-		if (!classifierPortfolio.contains(classifierName)) {
+	public List<String> getAncestorsOfAlgorithm(String algorithmName) {
+		if (classifierPortfolio.contains(algorithmName)) {
+			return getAncestorsOfAlgorithmUntil(algorithmName, classifierTopNode);
+		} else if (searcherPortfolio.contains(algorithmName)) {
+			return getAncestorsOfAlgorithmUntil(algorithmName, searcherTopNode);
+		} else if (evaluatorPortfolio.contains(algorithmName)) {
+			return getAncestorsOfAlgorithmUntil(algorithmName, evaluatorTopNode);
+		} else if (kernelFunctionPortfolio.contains(algorithmName)) {
+			return getAncestorsOfAlgorithmUntil(algorithmName, kernelFunctionTopNode);
+		} else {
 			StringBuilder builder = new StringBuilder();
-			builder.append(classifierName);
+			builder.append(algorithmName);
 			builder.append(" is not supported by the used ontology.");
 			throw new IllegalArgumentException(builder.toString());
 		}
-		return getAncestorsOfAlgorithmUntil(classifierName, classifierTopNode);
-	}
-
-	@Override
-	public List<String> getAncestorsOfSearcher(String searcher) {
-		if (!searcherPortfolio.contains(searcher)) {
-			StringBuilder builder = new StringBuilder();
-			builder.append(searcher);
-			builder.append(" is not supported by the used ontology.");
-			throw new IllegalArgumentException(builder.toString());
-		}
-		return getAncestorsOfAlgorithmUntil(searcher, searcherTopNode);
-	}
-
-	@Override
-	public List<String> getAncestorsOfEvaluator(String evaluator) {
-		if (!evaluatorPortfolio.contains(evaluator)) {
-			StringBuilder builder = new StringBuilder();
-			builder.append(evaluator);
-			builder.append(" is not supported by the used ontology.");
-			throw new IllegalArgumentException(builder.toString());
-		}
-		return getAncestorsOfAlgorithmUntil(evaluator, evaluatorTopNode);
-	}
-
-	@Override
-	public List<String> getAncestorsOfkernelFunction(String kernelFunctionName) {
-		if (!kernelFunctionPortfolio.contains(kernelFunctionName)) {
-			StringBuilder builder = new StringBuilder();
-			builder.append(kernelFunctionName);
-			builder.append(" is not supported by the used ontology.");
-			throw new IllegalArgumentException(builder.toString());
-		}
-		return getAncestorsOfAlgorithmUntil(kernelFunctionName, kernelFunctionTopNode);
 	}
 
 	/**
@@ -158,7 +132,6 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 			if (includeEqualSuperClasses && ancestors.size() == previousAncestorSize) {
 				ontology.equivalentClassesAxioms(ancestors.get(i)).forEach(axiom -> {
 					axiom.classExpressions().forEach(elem -> {
-						// System.out.println(elem.conjunctSet().findFirst());
 						if (!ancestors.contains(elem.conjunctSet().findFirst().get().asOWLClass())) {
 							ancestors.add(elem.conjunctSet().findFirst().get().asOWLClass());
 						}
@@ -248,23 +221,6 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 		return kernelFunctionPortfolio;
 	}
 
-	public static void main(String[] args) throws OWLOntologyCreationException {
-		WEKAOntologyConnector connector = new WEKAOntologyConnector();
-
-		for (String classifier : classifierPortfolio) {
-			System.out.println(connector.getAncestorsOfClassifier(classifier));
-		}
-
-		for (String searcher : searcherPortfolio) {
-			System.out.println(connector.getAncestorsOfSearcher(searcher));
-		}
-
-		for (String evaluator : evaluatorPortfolio) {
-			System.out.println(connector.getAncestorsOfEvaluator(evaluator));
-		}
-
-	}
-
 	/**
 	 * Get the highest common node in the ontology for all classifiers
 	 * 
@@ -290,5 +246,14 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 	 */
 	public String getEvaluatorTopNode() {
 		return evaluatorTopNode;
+	}
+
+	/**
+	 * Get the highest common node in the ontology for all kernel function
+	 * 
+	 * @return The kernel function top node
+	 */
+	public String getKernelFunctionTopNode() {
+		return kernelFunctionTopNode;
 	}
 }
