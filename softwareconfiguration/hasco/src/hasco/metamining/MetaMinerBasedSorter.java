@@ -54,7 +54,7 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 		return (int) Math.signum(score1 - score2);
 	}
 
-	private ComponentInstance convertToComponentInstance(TFDNode node) {
+	protected ComponentInstance convertToComponentInstance(TFDNode node) {
 		return Util.getSolutionCompositionFromState(loader.getComponents(), node.getState());
 	}
 

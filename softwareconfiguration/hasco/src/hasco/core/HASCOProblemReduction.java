@@ -307,4 +307,12 @@ public class HASCOProblemReduction {
 	public <T,A> GraphGenerator<T,A> getGraphGeneratorUsedByHASCOForSpecificPlanner(final IObservableGraphBasedHTNPlanningAlgorithmFactory<?,T,A,?> plannerFactory) {
 		return plannerFactory.newAlgorithm(getPlanningProblem(), 1).getGraphGenerator();
 	}
+
+	public Collection<Component> getComponents() {
+		return components;
+	}
+
+	public Map<Component, Map<Parameter, ParameterRefinementConfiguration>> getParamRefinementConfig() {
+		return paramRefinementConfig;
+	}
 }

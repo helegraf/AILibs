@@ -14,7 +14,6 @@ import de.upb.crc901.automl.metamining.similaritymeasures.F3Optimizer;
 import de.upb.crc901.automl.metamining.similaritymeasures.IHeterogenousSimilarityMeasureComputer;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import hasco.metamining.IMetaMiner;
-import hasco.model.Component;
 import hasco.model.ComponentInstance;
 import hasco.serialization.ComponentLoader;
 import weka.core.Attribute;
@@ -38,7 +37,7 @@ public class WEKAMetaminer implements IMetaMiner {
 	public WEKAMetaminer(Instances dataset, ComponentLoader componentLoader) {
 		this.dataset = dataset;
 		this.componentLoader = componentLoader;
-		this.pipelineCharacterizer = new WEKAPipelineCharacterizer(componentLoader);
+		this.pipelineCharacterizer = new WEKAPipelineCharacterizer(componentLoader.getParamConfigs());
 	}
 
 	@Override
