@@ -2,17 +2,20 @@ package de.upb.crc901.automl.metamining.pipelinecharacterizing;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.math3.geometry.euclidean.oned.Interval;
 import org.apache.commons.math3.geometry.partitioning.Region.Location;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import hasco.core.Util;
+import hasco.model.Component;
 import hasco.model.ComponentInstance;
 import hasco.model.NumericParameterDomain;
+import hasco.model.Parameter;
 import hasco.model.ParameterRefinementConfiguration;
-import hasco.serialization.ComponentLoader;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import treeminer.FrequentSubtreeFinder;
 import treeminer.TreeMiner;
@@ -29,14 +32,17 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 
 	private FrequentSubtreeFinder treeMiner;
 	private IOntologyConnector ontologyConnector;
-	private String[] patterns;
-	private int minSupport = 1;
-	private String pipelineTreeName = "Pipeline";
-	private ComponentLoader componentLoader;
 
-	public WEKAPipelineCharacterizer(ComponentLoader componentLoader) {
+	private String[] foundPipelinePatterns;
+	private int patternMinSupport = 1;
+
+	private String pipelineTreeName = "Pipeline";
+	private Map<Component, Map<Parameter, ParameterRefinementConfiguration>> componentParameters;
+
+	public WEKAPipelineCharacterizer(
+			Map<Component, Map<Parameter, ParameterRefinementConfiguration>> componentParameters) {
 		this.treeMiner = new TreeMiner();
-		this.componentLoader = componentLoader;
+		this.componentParameters = componentParameters;
 
 		try {
 			ontologyConnector = new WEKAOntologyConnector();
@@ -51,35 +57,22 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		// Convert the pipelines to String representations
 		List<String> pipelineRepresentations = new ArrayList<String>();
 		pipelines.forEach(pipeline -> {
-			// TODO remove this workaround
-			try {
-				pipelineRepresentations.add(makeStringTreeRepresentation(pipeline));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			pipelineRepresentations.add(makeStringTreeRepresentation(pipeline));
 		});
 
 		// Use the tree miner to find patterns
-		treeMiner.findFrequentSubtrees(pipelineRepresentations, minSupport);
+		treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);
 	}
 
 	@Override
 	public double[] characterize(ComponentInstance pipeline) {
 		// Make tree representation from this pipeline
-		String treeRepresentation = null;
-		// TODO remove this workaroundd
-		try {
-			treeRepresentation = makeStringTreeRepresentation(pipeline);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		String treeRepresentation = makeStringTreeRepresentation(pipeline);
 
 		// Ask the treeMiner which of the patterns are included in this pipeline
-		double[] pipelineCharacterization = new double[patterns.length];
-		for (int i = 0; i < patterns.length; i++) {
-			if (TreeRepresentationUtils.containsSubtree(treeRepresentation, patterns[i])) {
+		double[] pipelineCharacterization = new double[foundPipelinePatterns.length];
+		for (int i = 0; i < foundPipelinePatterns.length; i++) {
+			if (TreeRepresentationUtils.containsSubtree(treeRepresentation, foundPipelinePatterns[i])) {
 				pipelineCharacterization[i] = 1;
 			} else {
 				pipelineCharacterization[i] = 0;
@@ -97,9 +90,8 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 * @return
 	 * @throws Exception
 	 */
-	protected String makeStringTreeRepresentation(ComponentInstance pipeline) throws Exception {
+	protected String makeStringTreeRepresentation(ComponentInstance pipeline) {
 		List<String> pipelineBranches = new ArrayList<String>();
-
 		ComponentInstance classifierCI;
 
 		// Component is pipeline
@@ -107,29 +99,13 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 			ComponentInstance preprocessorCI = pipeline.getSatisfactionOfRequiredInterfaces().get("preprocessor");
 
 			if (preprocessorCI != null) {
-				// Get searcher if it has been set
+				// Characterize searcher
 				ComponentInstance searcherCI = preprocessorCI.getSatisfactionOfRequiredInterfaces().get("search");
-				if (searcherCI != null) {
-					String searcherBranch = TreeRepresentationUtils.makeRepresentationForBranch(
-							ontologyConnector.getAncestorsOfSearcher(searcherCI.getComponent().getName()));
-					searcherBranch = TreeRepresentationUtils.addChildrenToNode(searcherBranch,
-							getParametersForComponentInstance(searcherCI));
-					if (searcherBranch != null) {
-						pipelineBranches.add(searcherBranch);
-					}
-				}
+				addCharacterizationOfPipelineElement(pipelineBranches, searcherCI);
 
-				// Get evaluator if it has been set
+				// Characterize evaluator
 				ComponentInstance evaluatorCI = preprocessorCI.getSatisfactionOfRequiredInterfaces().get("eval");
-				if (evaluatorCI != null) {
-					String evaluatorBranch = TreeRepresentationUtils.makeRepresentationForBranch(
-							ontologyConnector.getAncestorsOfEvaluator(evaluatorCI.getComponent().getName()));
-					evaluatorBranch = TreeRepresentationUtils.addChildrenToNode(evaluatorBranch,
-							getParametersForComponentInstance(evaluatorCI));
-					if (evaluatorBranch != null) {
-						pipelineBranches.add(evaluatorBranch);
-					}
-				}
+				addCharacterizationOfPipelineElement(pipelineBranches, evaluatorCI);
 			}
 
 			classifierCI = pipeline.getSatisfactionOfRequiredInterfaces().get("classifier");
@@ -140,18 +116,39 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		}
 
 		// Characterize classifier
-		if (classifierCI != null) {
-			String classifierBranch = TreeRepresentationUtils.makeRepresentationForBranch(
-					ontologyConnector.getAncestorsOfClassifier(classifierCI.getComponent().getName()));
-			classifierBranch = TreeRepresentationUtils.addChildrenToNode(classifierBranch,
-					getParametersForComponentInstance(classifierCI));
-
-			// Add classifier to pipeline representation
-			pipelineBranches.add(classifierBranch);
-		}
+		addCharacterizationOfPipelineElement(pipelineBranches, classifierCI);
 
 		// Put tree together
 		return TreeRepresentationUtils.addChildrenToNode(pipelineTreeName, pipelineBranches);
+	}
+
+	/**
+	 * Gets the ontology characterization and selected parameters of the given
+	 * ComponentInstance and ads its characterization (the branch of a tree that is
+	 * the current pipeline) to the pipeline tree by adding its branch
+	 * representation as a last element of the list of branches.
+	 * 
+	 * @param pipelineBranches
+	 *            The current branches of the pipeline.
+	 * @param componentInstance
+	 *            The pipeline element to be characterized
+	 */
+	protected void addCharacterizationOfPipelineElement(List<String> pipelineBranches,
+			ComponentInstance componentInstance) {
+		if (componentInstance != null) {
+			// Get generalization
+			List<String> branchComponents = ontologyConnector
+					.getAncestorsOfAlgorithm(componentInstance.getComponent().getName());
+
+			// Get parameters
+			branchComponents.set(branchComponents.size() - 1,
+					TreeRepresentationUtils.addChildrenToNode(branchComponents.get(branchComponents.size() - 1),
+							getParametersForComponentInstance(componentInstance)));
+
+			// Serialize
+			String branch = TreeRepresentationUtils.makeRepresentationForBranch(branchComponents);
+			pipelineBranches.add(branch);
+		}
 	}
 
 	protected List<String> getParametersForComponentInstance(ComponentInstance componentInstance) {
@@ -162,12 +159,10 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 				&& componentInstance.getSatisfactionOfRequiredInterfaces().size() > 0) {
 			componentInstance.getSatisfactionOfRequiredInterfaces().forEach((requiredInterface, component) -> {
 				// so far, only have the "K" interface & this has no param so can directly get
-				// it but in the future all these large methods should maybe be made smaller &
-				// more general
 
 				List<String> kernelFunctionCharacterisation = Arrays.asList(requiredInterface);
 				kernelFunctionCharacterisation
-						.addAll(ontologyConnector.getAncestorsOfkernelFunction(component.getComponent().getName()));
+						.addAll(ontologyConnector.getAncestorsOfAlgorithm(component.getComponent().getName()));
 				parameters.add(TreeRepresentationUtils.addChildrenToNode(requiredInterface, Arrays
 						.asList(TreeRepresentationUtils.makeRepresentationForBranch(kernelFunctionCharacterisation))));
 			});
@@ -181,7 +176,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 
 			// Numeric parameter - needs to be refined
 			if (parameter.isNumeric()) {
-				ParameterRefinementConfiguration parameterRefinementConfiguration = componentLoader.getParamConfigs()
+				ParameterRefinementConfiguration parameterRefinementConfiguration = componentParameters
 						.get(componentInstance.getComponent()).get(parameter);
 				NumericParameterDomain parameterDomain = ((NumericParameterDomain) parameter.getDefaultDomain());
 				Interval currentInterval = null;
@@ -221,6 +216,14 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		return parameters;
 	}
 
+	/**
+	 * Helper method for serializing an interval so that it can be used in String
+	 * representations of parameters of pipeline elements.
+	 * 
+	 * @param interval
+	 *            The interval to be serialized
+	 * @return The String representation of the interval
+	 */
 	protected String serializeInterval(Interval interval) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[");
@@ -233,21 +236,23 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 
 	@Override
 	public double[][] getCharacterizationsOfTrainingExamples() {
-		// TODO Implement
-		// TODO maybe adjust return parameter type here
-		return null;
+		return treeMiner.getCharacterizationsOfTrainingExamples();
 	}
 
 	/**
-	 * @return the ontologyConnector
+	 * Get the used ontology connector.
+	 * 
+	 * @return The used ontology connector
 	 */
 	public IOntologyConnector getOntologyConnector() {
 		return ontologyConnector;
 	}
 
 	/**
+	 * Set the ontology connector to be used.
+	 * 
 	 * @param ontologyConnector
-	 *            the ontologyConnector to set
+	 *            the ontologyConnector to be used
 	 */
 	public void setOntologyConnector(IOntologyConnector ontologyConnector) {
 		this.ontologyConnector = ontologyConnector;
@@ -261,7 +266,7 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 *         frequent
 	 */
 	public int getMinSupport() {
-		return minSupport;
+		return patternMinSupport;
 	}
 
 	/**
@@ -273,13 +278,13 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	 *            frequent
 	 */
 	public void setMinSupport(int minSupport) {
-		this.minSupport = minSupport;
+		this.patternMinSupport = minSupport;
 	}
 
-	public int test(TFDNode i1, TFDNode i2) {
+	public int test(TFDNode i1, TFDNode i2, Collection<Component> collection) {
+		// TODO remove this method only for testing purposes!
 		try {
-			ComponentInstance pipelie = Util.getSolutionCompositionFromState(componentLoader.getComponents(),
-					i1.getState());
+			ComponentInstance pipelie = Util.getSolutionCompositionFromState(collection, i1.getState());
 			if (pipelie != null) {
 				System.out.println(makeStringTreeRepresentation(pipelie));
 			} else {
@@ -287,7 +292,6 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 			}
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return -1;

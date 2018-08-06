@@ -42,7 +42,7 @@ public interface IPipelineCharacterizer {
 	 * ComponentInstance), return which found pattern (found during the training phase in
 	 * {@link IPipelineCharacterizer#build(List)}) occurs in which pipeline.
 	 * 
-	 * If in the returned matrix m, m[i][j]=1, pattern p occurs in training pipeline
+	 * If in the returned matrix m, m[i][j]=1, pattern j occurs in training pipeline
 	 * i. Otherwise m[i][j] and pattern j doesn't occur in training pipeline i.
 	 * 
 	 * @return A matrix representing pattern occurrences in pipelines
