@@ -1,6 +1,7 @@
 package de.upb.crc901.automl.pipeline.basic;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import de.upb.crc901.automl.pipeline.sophisticated.FeaturePreprocessor;
 import weka.attributeSelection.ASEvaluation;
@@ -16,6 +17,14 @@ public class SupervisedFilterSelector implements Serializable, FeaturePreprocess
 	private final AttributeSelection selector;
 	private boolean prepared;
 
+	// variables for serialization and deserialization
+	private static final String supervisedFilterSelectorName = "SupervisedFilterSelector ";
+	private static final String openingBracket = "[";
+	private static final String searcherName = "searcher=";
+	private static final String comma = ", ";
+	private static final String evaluatorName = "evaluator=";
+	private static final String closingBracket = "]";
+
 	public SupervisedFilterSelector(ASSearch searcher, ASEvaluation evaluator) {
 		super();
 		this.searcher = searcher;
@@ -30,6 +39,17 @@ public class SupervisedFilterSelector implements Serializable, FeaturePreprocess
 		this.searcher = searcher;
 		this.evaluator = evaluator;
 		this.selector = selector;
+	}
+
+	public SupervisedFilterSelector(String stringRepresentation) throws Exception {
+		String[] parts = stringRepresentation.replaceAll(supervisedFilterSelectorName, "")
+				.replaceAll("\\"+openingBracket, "").replaceAll(searcherName, "").replaceAll(evaluatorName, "")
+				.replaceAll("\\"+closingBracket, "").split(comma);
+		searcher = ASSearch.forName(parts[0], null);
+		evaluator = ASEvaluation.forName(parts[1], null);
+		selector = new AttributeSelection();
+		selector.setSearch(searcher);
+		selector.setEvaluator(evaluator);
 	}
 
 	public ASSearch getSearcher() {
@@ -108,6 +128,15 @@ public class SupervisedFilterSelector implements Serializable, FeaturePreprocess
 
 	@Override
 	public String toString() {
-		return "SupervisedFilterSelector [searcher=" + searcher.getClass().getName() + ", evaluator=" + evaluator.getClass().getName() + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append(supervisedFilterSelectorName);
+		builder.append(openingBracket);
+		builder.append(searcherName);
+		builder.append(searcher.getClass().getName());
+		builder.append(comma);
+		builder.append(evaluatorName);
+		builder.append(evaluator.getClass().getName());
+		builder.append(closingBracket);
+		return builder.toString();
 	}
 }

@@ -2,6 +2,7 @@ package de.upb.crc901.automl.pipeline.basic;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
@@ -18,7 +19,6 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.OptionHandler;
 
-
 /**
  * 
  * @author Felix Mohr
@@ -28,7 +28,12 @@ import weka.core.OptionHandler;
 public class MLPipeline implements Classifier, Serializable {
 
 	private static final Logger logger = LoggerFactory.getLogger(MLPipeline.class);
-	
+
+	private static final String preprocessorsString = " (preprocessors), ";
+	private static final String preprocessorsMatchingString = " [(]preprocessors[)], ";
+	private static final String classifierString = " (classifier)";
+	private static final String classifierMatchingString = " [(]classifier[)]";
+
 	private final List<SupervisedFilterSelector> preprocessors = new ArrayList<>();
 	private final Classifier baseClassifier;
 	private boolean trained = false;
@@ -56,14 +61,30 @@ public class MLPipeline implements Classifier, Serializable {
 		this.baseClassifier = baseClassifier;
 	}
 
+	public MLPipeline(String pipelineRepresentation) throws Exception {
+		// Get parts
+		String[] parts = pipelineRepresentation.split(preprocessorsMatchingString);
+		
+		// Get preprocessors
+		parts[0] = parts[0].substring(1, parts[0].length()-1);
+		String[] preprocessorStrings = parts[0].split("],");
+		for (String preprocessor : preprocessorStrings) {
+			preprocessors.add(new SupervisedFilterSelector(preprocessor + "]"));
+		}
+		
+		// Get base classifier
+		parts[1] = parts[1].replaceAll(classifierMatchingString, "");
+		baseClassifier = WekaUtil.fromClassifierDescriptor(parts[1]);
+	}
+
 	@Override
 	public void buildClassifier(Instances data) throws Exception {
-		
+
 		/* reduce dimensionality */
 		long start = System.currentTimeMillis();
 		int numAttributesBefore = data.numAttributes();
 		logger.info("Starting to build the preprocessors of the pipeline.");
-		
+
 		for (SupervisedFilterSelector pp : preprocessors) {
 
 			/* if the filter has not been trained yet, do so now and store it */
@@ -71,10 +92,11 @@ public class MLPipeline implements Classifier, Serializable {
 				try {
 					start = System.currentTimeMillis();
 					pp.prepare(data);
-					timeForTrainingPreprocessors = (int)(System.currentTimeMillis() - start);
+					timeForTrainingPreprocessors = (int) (System.currentTimeMillis() - start);
 					int newNumberOfClasses = pp.apply(data).numClasses();
 					if (data.numClasses() != newNumberOfClasses) {
-						System.out.println(pp.getSelector() + " changed number of classes from " + data.numClasses() + " to " + newNumberOfClasses);
+						System.out.println(pp.getSelector() + " changed number of classes from " + data.numClasses()
+								+ " to " + newNumberOfClasses);
 					}
 				} catch (NullPointerException e) {
 					e.printStackTrace();
@@ -89,7 +111,7 @@ public class MLPipeline implements Classifier, Serializable {
 		/* build classifier based on reduced data */
 		start = System.currentTimeMillis();
 		baseClassifier.buildClassifier(data);
-		timeForTrainingClassifier = (int)(System.currentTimeMillis() - start);
+		timeForTrainingClassifier = (int) (System.currentTimeMillis() - start);
 		trained = true;
 		timeForExecutingPreprocessors = new DescriptiveStatistics();
 		timeForExecutingClassifier = new DescriptiveStatistics();
@@ -100,7 +122,7 @@ public class MLPipeline implements Classifier, Serializable {
 		for (SupervisedFilterSelector pp : preprocessors) {
 			data = pp.apply(data);
 		}
-		timeForExecutingPreprocessors.addValue((int)(System.currentTimeMillis() - start));
+		timeForExecutingPreprocessors.addValue((int) (System.currentTimeMillis() - start));
 		return data;
 	}
 
@@ -116,7 +138,7 @@ public class MLPipeline implements Classifier, Serializable {
 		timeForExecutingClassifier.addValue((System.currentTimeMillis() - start));
 		return result;
 	}
-	
+
 	public double[] classifyInstances(Instances arg0) throws Exception {
 		int n = arg0.size();
 		double[] answers = new double[n];
@@ -136,7 +158,7 @@ public class MLPipeline implements Classifier, Serializable {
 			throw new IllegalStateException("The filter has turned the instance into NULL");
 		long start = System.currentTimeMillis();
 		double[] result = baseClassifier.distributionForInstance(arg0);
-		timeForExecutingClassifier.addValue((int)(System.currentTimeMillis() - start));
+		timeForExecutingClassifier.addValue((int) (System.currentTimeMillis() - start));
 		return result;
 	}
 
@@ -155,7 +177,12 @@ public class MLPipeline implements Classifier, Serializable {
 
 	@Override
 	public String toString() {
-		return getPreprocessors() + " (preprocessors), " + WekaUtil.getClassifierDescriptor(getBaseClassifier()) + " (classifier)";
+		StringBuilder builder = new StringBuilder();
+		builder.append(getPreprocessors());
+		builder.append(preprocessorsString);
+		builder.append(WekaUtil.getClassifierDescriptor(getBaseClassifier()));
+		builder.append(classifierString);
+		return builder.toString();
 	}
 
 	public long getTimeForTrainingPreprocessor() {
@@ -177,16 +204,18 @@ public class MLPipeline implements Classifier, Serializable {
 	public MLPipeline clone() {
 		List<SupervisedFilterSelector> clonedPreprocessing = new ArrayList<>();
 		try {
-			
+
 			/* clone preprocessing */
 			for (SupervisedFilterSelector s : preprocessors) {
 				ASSearch search = s.getSearcher();
-				ASSearch searchClone = ASSearch.forName(search.getClass().getName(), (search instanceof OptionHandler) ? ((OptionHandler) search).getOptions() : new String[] {});
+				ASSearch searchClone = ASSearch.forName(search.getClass().getName(),
+						(search instanceof OptionHandler) ? ((OptionHandler) search).getOptions() : new String[] {});
 				ASEvaluation eval = s.getEvaluator();
-				ASEvaluation evalClone = ASEvaluation.forName(eval.getClass().getName(), (eval instanceof OptionHandler) ? ((OptionHandler) eval).getOptions() : new String[] {});
+				ASEvaluation evalClone = ASEvaluation.forName(eval.getClass().getName(),
+						(eval instanceof OptionHandler) ? ((OptionHandler) eval).getOptions() : new String[] {});
 				clonedPreprocessing.add(new SupervisedFilterSelector(searchClone, evalClone));
 			}
-			
+
 			/* clone classifier */
 			Classifier classifierClone = WekaUtil.cloneClassifier(baseClassifier);
 			return new MLPipeline(clonedPreprocessing, classifierClone);
