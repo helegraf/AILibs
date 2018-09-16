@@ -55,12 +55,20 @@ dependencies {
 	// wrapped library dependencies
 	//compile group: 'de.upb.isys', name: 'meka', version: '0.0.1'
 	compile group: 'de.upb.isys', name: 'interruptable-weka', version: '0.0.1'
+	// https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-stable
+	//compile group: 'nz.ac.waikato.cms.weka', name: 'weka-stable', version: '3.8.0'
+	
 
 	// OWL API
 	compile 'net.sourceforge.owlapi:owlapi-distribution:5.1.0'
 	
 	// TreeMiner
 	compile 'com.github.helegraf:TreeMiner:-SNAPSHOT'
+	
+	// Data-Handling (meta data and classifier perf. values data base connection)
+	implementation ('com.github.helegraf:data-handling:-SNAPSHOT') {
+		exclude group: 'nz.ac.waikato.cms.weka', module: 'weka-stable'
+	}
 	
 	// linear algebra
 	compile group: 'org.nd4j', name: 'nd4j-native-platform', version: '0.9.1'

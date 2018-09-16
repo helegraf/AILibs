@@ -20,7 +20,7 @@ public interface IPipelineCharacterizer {
 	 * Finds frequent patterns in the given list of pipelines.
 	 * 
 	 * @param pipelines
-	 *            The pipelines to go though for patterns
+	 *            The pipelines to go through for patterns
 	 */
 	public void build(List<ComponentInstance> pipelines);
 
@@ -28,8 +28,8 @@ public interface IPipelineCharacterizer {
 	 * Checks which of the found patterns (found during the training phase in
 	 * {@link IPipelineCharacterizer#build(List)}) occur in this pipeline.
 	 * 
-	 * If in the returned list l, l[j]=1, pattern p occurs in this pipeline.
-	 * Otherwise l[j] and pattern j doesn't occur in this pipeline.
+	 * If in the returned list l, l[j]=1, pattern j occurs in this pipeline.
+	 * Otherwise l[j]=0 and pattern j doesn't occur in this pipeline.
 	 * 
 	 * @param pipeline
 	 *            The pipeline for which pattern occurrence is checked
@@ -43,7 +43,7 @@ public interface IPipelineCharacterizer {
 	 * {@link IPipelineCharacterizer#build(List)}) occurs in which pipeline.
 	 * 
 	 * If in the returned matrix m, m[i][j]=1, pattern j occurs in training pipeline
-	 * i. Otherwise m[i][j] and pattern j doesn't occur in training pipeline i.
+	 * i. Otherwise m[i][j]=0 and pattern j doesn't occur in training pipeline i.
 	 * 
 	 * @return A matrix representing pattern occurrences in pipelines
 	 */

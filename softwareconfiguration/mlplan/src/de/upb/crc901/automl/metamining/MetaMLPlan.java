@@ -10,11 +10,13 @@ import java.util.TimerTask;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import de.upb.crc901.automl.hascowekaml.MLPipelineComponentInstanceFactory;
 import de.upb.crc901.automl.hascowekaml.WEKAPipelineFactory;
-import de.upb.crc901.automl.metamining.pipelinecharacterizing.WEKAPipelineCharacterizer;
+import de.upb.crc901.automl.metamining.databaseconnection.ExperimentRepository;
 import de.upb.crc901.automl.pipeline.basic.MLPipeline;
 import hasco.core.HASCOProblemReduction;
 import hasco.core.Util;
+import hasco.metamining.MetaMinerBasedSorter;
 import hasco.model.Component;
 import hasco.model.ComponentInstance;
 import jaicore.graphvisualizer.SimpleGraphVisualizationWindow;
@@ -40,11 +42,21 @@ public class MetaMLPlan extends AbstractClassifier {
 	 */
 	private static final long serialVersionUID = 4772178784402396834L;
 
+	// Search components
 	private ORGraphSearch<TFDNode, String, NodeOrderList> lds;
+	private WEKAMetaminer metaMiner;
+	WEKAPipelineFactory factory = new WEKAPipelineFactory();
+
+	// Search configuration
 	private long timeoutInMilliseconds = 60000;
+	private long safety = 1000;
+	private int CPUs = 1;
+	private String metaFeatureSetName = "all";
+	private String datasetSetName = "all";
+
+	// Search results
 	private Classifier bestModel;
 	private Collection<Component> components;
-	private WEKAMetaminer metaMiner;
 
 	public MetaMLPlan() throws IOException {
 		this(new File("model/weka/weka-all-autoweka.json"));
@@ -53,64 +65,90 @@ public class MetaMLPlan extends AbstractClassifier {
 	public MetaMLPlan(File configFile) throws IOException {
 		// Get the graph generator from the reduction
 		HASCOProblemReduction reduction = new HASCOProblemReduction(configFile, "AbstractClassifier", true);
-		components = reduction.getComponents();
 		GraphGenerator<TFDNode, String> graphGenerator = reduction
 				.getGraphGeneratorUsedByHASCOForSpecificPlanner(new ForwardDecompositionHTNPlannerFactory<Double>());
-		WEKAPipelineCharacterizer chara = new WEKAPipelineCharacterizer(reduction.getParamRefinementConfig());
 		metaMiner = new WEKAMetaminer(reduction.getParamRefinementConfig());
 		lds = new BestFirstLimitedDiscrepancySearch<>(graphGenerator,
-				(n1, n2) -> chara.test(n1, n1, reduction.getComponents()));
+				new MetaMinerBasedSorter(metaMiner, reduction.getComponents()));
 	}
-	
-	public void buildMetaComponents() throws Exception {
-		metaMiner.build(null, null, null);
+
+	public void buildMetaComponents(String host, String user, String password) throws Exception {
+		ExperimentRepository repo = new ExperimentRepository(host, user, password,
+				new MLPipelineComponentInstanceFactory(components), CPUs, metaFeatureSetName, datasetSetName);
+		metaMiner.build(repo.getDistinctPipelines(), repo.getDatasetCahracterizations(),
+				repo.getPipelineResultsOnDatasets());
 	}
 
 	@Override
 	public void buildClassifier(Instances data) throws Exception {
-		// start timer
+		// Start timer to interrupt search if it takes to long
 		TimerTask tt = new TimerTask() {
 
 			@Override
 			public void run() {
+				System.out.println("Interrupting search because time is running out.");
 				lds.cancel();
 			}
 		};
-		new Timer().schedule(tt, timeoutInMilliseconds);
-		
-		// characterize data set and give to meta miner
+
+		// Start timer that takes into account training time of the best model as well
+		new Timer().schedule(tt, timeoutInMilliseconds - safety);
+		StopWatch totalTimer = new StopWatch();
+		totalTimer.start();
+
+		// Characterize data set and give to meta miner
+		System.out.println("Characterizing data set");
 		metaMiner.setDataSetCharacterization(new GlobalCharacterizer().characterize(data));
 
-		// search for solutions
+		// Preparing the split for validating pipelines
+		System.out.println("Preparing validation split");
+		MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(
+				new MulticlassEvaluator(new Random(0)), 3, data, .7f);
+
+		// Search for solutions
+		System.out.println("Searching for solutions");
+		StopWatch trainingTimer = new StopWatch();
 		bestModel = null;
 		double bestScore = 1;
+		double bestModelExpectedTrainingTime = 0;
 		while (!lds.isInterrupted()) {
 			List<TFDNode> solution = lds.nextSolution();
 			if (solution == null)
 				break;
 			try {
+				// Prepare pipeline
 				ComponentInstance ci = Util.getSolutionCompositionFromState(components,
 						solution.get(solution.size() - 1).getState());
-				WEKAPipelineFactory factory = new WEKAPipelineFactory();
 				MLPipeline pl = factory.getComponentInstantiation(ci);
-				StopWatch watch = new StopWatch();
-				watch.start();
-				MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(
-						new MulticlassEvaluator(new Random(0)), 3, data, .7f);
-				watch.stop();
-				long expectedTimeForTraining = watch.getTime() / 2;
+
+				// Evaluate pipeline
+				trainingTimer.start();
 				double score = mccv.evaluate(pl);
+				trainingTimer.stop();
+				trainingTimer.reset();
+
+				// Check if better than previous best
 				System.out.println(score + " " + pl);
 				if (score < bestScore) {
 					bestModel = pl;
 					bestScore = score;
+					bestModelExpectedTrainingTime = trainingTimer.getTime() / 2;
+				}
+
+				// Check if enough time remaining to re-train the current best model on the
+				// whole training data
+				if ((timeoutInMilliseconds - safety) <= (totalTimer.getTime() + bestModelExpectedTrainingTime)) {
+					System.out.println(
+							"Stopping search to train best model on whole training data which is expected to take "
+									+ bestModelExpectedTrainingTime + " ms.");
+					break;
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 
-			// This needs approx. expectedTimeForTraining much time
-			// TODO time this also somehow (stop search so enough time for training this)
+			System.out.println("Evaluating best model with validation score " + bestScore + " on whole training data ("
+					+ bestModel + ")");
 			bestModel.buildClassifier(data);
 		}
 
@@ -130,7 +168,19 @@ public class MetaMLPlan extends AbstractClassifier {
 		}
 	}
 
-	public void setTimeOutInSeconds(int seconds) {
+	public void setTimeOutInMilliSeconds(int seconds) {
 		this.timeoutInMilliseconds = seconds * 1000;
+	}
+
+	public void setMetaFeatureSetName(String metaFeatureSetName) {
+		this.metaFeatureSetName = metaFeatureSetName;
+	}
+
+	public void setDatasetSetName(String datasetSetName) {
+		this.datasetSetName = datasetSetName;
+	}
+
+	public void setCPUs(int cPUs) {
+		CPUs = cPUs;
 	}
 }

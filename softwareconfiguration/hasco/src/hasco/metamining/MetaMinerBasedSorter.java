@@ -1,11 +1,11 @@
 package hasco.metamining;
 
+import java.util.Collection;
 import java.util.Comparator;
 
-import hasco.core.HASCO;
 import hasco.core.Util;
+import hasco.model.Component;
 import hasco.model.ComponentInstance;
-import hasco.serialization.ComponentLoader;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 
 /**
@@ -18,10 +18,8 @@ import jaicore.planning.graphgenerators.task.tfd.TFDNode;
  */
 public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 
-	/**
-	 * The ComponentLoader object used to get the available components
-	 */
-	private ComponentLoader loader;
+	//TODO fix javadoc
+	private Collection<Component> components;
 
 	/**
 	 * The "MetaMiner" has access to the meta information of the given
@@ -31,18 +29,8 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 	 */
 	private IMetaMiner metaminer;
 
-	/**
-	 * Creates a new MetaminerBasedSorter object that compares given
-	 * {@link TFDNode}s based on the attached {@link ComponentInstance}.
-	 * 
-	 * @param metaminer
-	 *            The {@link IMetaMiner} used to score the ComponentInstances
-	 *            attached to a TFDNode. Has to already have been built.
-	 * @param hasco
-	 *            The {@link HASCO} object used to get the available components
-	 */
-	public MetaMinerBasedSorter(IMetaMiner metaminer, ComponentLoader loader) {
-		this.loader = loader;
+	public MetaMinerBasedSorter(IMetaMiner metaminer, Collection<Component> components) {
+		this.components = components;
 		this.metaminer = metaminer;
 	}
 
@@ -55,7 +43,7 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 	}
 
 	protected ComponentInstance convertToComponentInstance(TFDNode node) {
-		return Util.getSolutionCompositionFromState(loader.getComponents(), node.getState());
+		return Util.getSolutionCompositionFromState(components, node.getState());
 	}
 
 	/**

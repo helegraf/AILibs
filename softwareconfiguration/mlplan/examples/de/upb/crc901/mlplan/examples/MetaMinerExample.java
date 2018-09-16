@@ -33,7 +33,8 @@ public class MetaMinerExample {
 
 		// Initialize meta mlplan and let it run for 30 seconds
 		MetaMLPlan metaMLPlan = new MetaMLPlan();
-		metaMLPlan.setTimeOutInSeconds(30);
+		metaMLPlan.setCPUs(4);
+		metaMLPlan.setTimeOutInMilliSeconds(30);
 		metaMLPlan.buildClassifier(split.get(0));
 
 		// Evaluate solution produced by meta mlplan

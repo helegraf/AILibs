@@ -1,7 +1,6 @@
 package de.upb.crc901.automl.pipeline.basic;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 import de.upb.crc901.automl.pipeline.sophisticated.FeaturePreprocessor;
 import weka.attributeSelection.ASEvaluation;
@@ -45,8 +44,16 @@ public class SupervisedFilterSelector implements Serializable, FeaturePreprocess
 		String[] parts = stringRepresentation.replaceAll(supervisedFilterSelectorName, "")
 				.replaceAll("\\"+openingBracket, "").replaceAll(searcherName, "").replaceAll(evaluatorName, "")
 				.replaceAll("\\"+closingBracket, "").split(comma);
-		searcher = ASSearch.forName(parts[0], null);
-		evaluator = ASEvaluation.forName(parts[1], null);
+		try {
+			searcher = ASSearch.forName(parts[0], null);
+		} catch (NoClassDefFoundError e) {
+			throw new Exception("Tried to init ASSearch from \"" + parts[0] + "\". Split String: \"" + stringRepresentation+"\"");
+		}
+		try {
+			evaluator = ASEvaluation.forName(parts[1], null);
+		} catch (NoClassDefFoundError e) {
+			throw new Exception("Tried to init ASEvaluation from \"" + parts[1] + "\". Split String: \"" + stringRepresentation+"\"");
+		}
 		selector = new AttributeSelection();
 		selector.setSearch(searcher);
 		selector.setEvaluator(evaluator);

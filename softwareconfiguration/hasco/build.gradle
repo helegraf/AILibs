@@ -48,6 +48,9 @@ repositories {
     flatDir {
     	dirs 'lib'
     }
+	flatDir {
+		dirs '../../JAICore/jaicore-ml/lib'
+	}
 	maven {
         url "http://clojars.org/repo/"
 		url "https://jitpack.io"

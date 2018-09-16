@@ -2,7 +2,6 @@ package de.upb.crc901.automl.pipeline.basic;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
@@ -64,14 +63,16 @@ public class MLPipeline implements Classifier, Serializable {
 	public MLPipeline(String pipelineRepresentation) throws Exception {
 		// Get parts
 		String[] parts = pipelineRepresentation.split(preprocessorsMatchingString);
-		
-		// Get preprocessors
-		parts[0] = parts[0].substring(1, parts[0].length()-1);
-		String[] preprocessorStrings = parts[0].split("],");
-		for (String preprocessor : preprocessorStrings) {
-			preprocessors.add(new SupervisedFilterSelector(preprocessor + "]"));
+
+		// If there is a preprocessor
+		if (parts.length > 1) {
+			// Get preprocessor (can currently only get 1)
+			parts[0] = parts[0].substring(1, parts[0].length() - 1);
+			if (!parts[0].equals("")) {
+				preprocessors.add(new SupervisedFilterSelector(parts[0]));
+			}
 		}
-		
+
 		// Get base classifier
 		parts[1] = parts[1].replaceAll(classifierMatchingString, "");
 		baseClassifier = WekaUtil.fromClassifierDescriptor(parts[1]);

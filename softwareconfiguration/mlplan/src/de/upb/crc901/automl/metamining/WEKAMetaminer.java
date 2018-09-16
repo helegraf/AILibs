@@ -1,7 +1,7 @@
 package de.upb.crc901.automl.metamining;
 
-import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -11,8 +11,8 @@ import de.upb.crc901.automl.metamining.pipelinecharacterizing.IPipelineCharacter
 import de.upb.crc901.automl.metamining.pipelinecharacterizing.WEKAPipelineCharacterizer;
 import de.upb.crc901.automl.metamining.similaritymeasures.F3Optimizer;
 import de.upb.crc901.automl.metamining.similaritymeasures.IHeterogenousSimilarityMeasureComputer;
-import de.upb.crc901.automl.metamining.similaritymeasures.IRankMatrixSimilarityComputer;
-import de.upb.crc901.automl.metamining.similaritymeasures.RankMatrixSimilarityComputer;
+import de.upb.crc901.automl.metamining.similaritymeasures.IRelativeRankMatrixComputer;
+import de.upb.crc901.automl.metamining.similaritymeasures.RelativeRankMatricComputer;
 import hasco.metamining.IMetaMiner;
 import hasco.model.Component;
 import hasco.model.ComponentInstance;
@@ -21,6 +21,12 @@ import hasco.model.ParameterRefinementConfiguration;
 import weka.core.Attribute;
 import weka.core.Instances;
 
+/**
+ * An implementation of the meta miner for pipelines consisting exclusively of WEKA components.
+ * 
+ * @author Helena Graf
+ *
+ */
 public class WEKAMetaminer implements IMetaMiner {
 
 	private boolean hasBeenBuilt = false;
@@ -28,7 +34,7 @@ public class WEKAMetaminer implements IMetaMiner {
 	private Enumeration<Attribute> dataSetMetaFeaturesAttributes;
 
 	private IHeterogenousSimilarityMeasureComputer similarityMeasure = new F3Optimizer(0.1);
-	private IRankMatrixSimilarityComputer similarityComputer = new RankMatrixSimilarityComputer();
+	private IRelativeRankMatrixComputer similarityComputer = new RelativeRankMatricComputer();
 	private IPipelineCharacterizer pipelineCharacterizer;
 
 	public WEKAMetaminer(Map<Component, Map<Parameter, ParameterRefinementConfiguration>> paramConfigs) {
@@ -50,7 +56,7 @@ public class WEKAMetaminer implements IMetaMiner {
 		return similarityMeasure.computeSimilarity(datasetMetafeatures, Nd4j.create(pipelineMetafeatures));
 	}
 
-	public void build(ArrayList<ComponentInstance> distinctPipelines, Instances metaFeatureInformation,
+	public void build(List<ComponentInstance> distinctPipelines, Instances metaFeatureInformation,
 			double[][][] performanceValues) throws Exception {
 		// Check whether has been built
 		if (hasBeenBuilt) {
@@ -71,7 +77,7 @@ public class WEKAMetaminer implements IMetaMiner {
 		// ----- Pipeline Characterization -----
 
 		// Compute relative performance ranks of pipelines on data sets
-		INDArray rankMatrix = similarityComputer.computeSimilarityOfRankMatrix(performanceValues);
+		INDArray rankMatrix = similarityComputer.computeRelativeRankMatrix(performanceValues);
 
 		// Initialize PipelineCharacterizer with list of distinct pipelines
 		pipelineCharacterizer.build(distinctPipelines);
@@ -95,6 +101,11 @@ public class WEKAMetaminer implements IMetaMiner {
 		}
 	}
 
+	/**
+	 * Get the similarity measure used to determine the similarities of s
+	 * 
+	 * @return
+	 */
 	public IHeterogenousSimilarityMeasureComputer getSimilarityMeasure() {
 		return similarityMeasure;
 	}
