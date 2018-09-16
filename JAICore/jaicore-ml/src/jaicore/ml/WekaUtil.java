@@ -35,12 +35,16 @@ import jaicore.ml.core.SimpleInstanceImpl;
 import jaicore.ml.core.SimpleInstancesImpl;
 import jaicore.ml.core.SimpleLabeledInstanceImpl;
 import jaicore.ml.core.WekaCompatibleInstancesImpl;
+import jaicore.ml.evaluation.ClassifierEvaluator;
+import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
+import jaicore.ml.evaluation.MulticlassEvaluator;
 import jaicore.ml.interfaces.LabeledInstance;
 import jaicore.ml.interfaces.LabeledInstances;
 import weka.attributeSelection.ASEvaluation;
 import weka.attributeSelection.ASSearch;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -1033,5 +1037,73 @@ public class WekaUtil {
 			System.out.println(i + "/" + copy.size());
 		}
 		return result;
+	}
+
+	/**
+	 * Get the error rate of the classifier according to the given info about the
+	 * split and evaluation technique.
+	 * 
+	 * @param split_technique
+	 * @param evaluation_technique
+	 * @param seed
+	 * @param data
+	 * @param classifier
+	 * @return
+	 * @throws Exception
+	 */
+	public static double evaluateClassifier(String split_technique, String evaluation_technique, int seed,
+			Instances data, Classifier classifier) throws Exception {
+		switch (evaluation_technique) {
+		case "single":
+			Instances train_split = WekaUtil.getTrainSplit(split_technique, data, seed);
+			Evaluation eval = new Evaluation(train_split);
+			classifier.buildClassifier(train_split);
+			eval.evaluateModel(classifier, WekaUtil.getTestSplit(split_technique, data, seed));
+			return (1 - eval.pctCorrect());
+		case "multi":
+			return WekaUtil.getEvaluatorForSplitTechnique(split_technique, data, seed).evaluate(classifier);
+		}
+
+		throw new IllegalArgumentException("Invalid split technique: " + split_technique);
+	}
+
+	public static ClassifierEvaluator getEvaluatorForSplitTechnique(String split_technique, Instances data, int seed) {
+		String[] techniqueAndDescription = split_technique.split("_");
+
+		switch (techniqueAndDescription[0]) {
+		case "3MCCV":
+			return new MonteCarloCrossValidationEvaluator(new MulticlassEvaluator(new Random(seed)), 3, data,
+					Float.parseFloat(techniqueAndDescription[1]));
+		}
+
+		return null;
+	}
+
+	public static Instances getTrainSplit(String split_technique, Instances data, int seed) {
+		String[] techniquAndDescription = split_technique.split("_");
+
+		switch (techniquAndDescription[0]) {
+		case "MCCV":
+			Collection<Integer>[] instancesInFolds = WekaUtil.getArbitrarySplit(data, new Random(seed),
+					Double.parseDouble(techniquAndDescription[1]));
+			List<Instances> folds = WekaUtil.realizeSplit(data, instancesInFolds);
+			return folds.get(0);
+		}
+
+		return null;
+	}
+
+	public static Instances getTestSplit(String split_technique, Instances data, int seed) {
+		String[] techniquAndDescription = split_technique.split("_");
+
+		switch (techniquAndDescription[0]) {
+		case "MCCV":
+			Collection<Integer>[] instancesInFolds = WekaUtil.getArbitrarySplit(data, new Random(seed),
+					Double.parseDouble(techniquAndDescription[1]));
+			List<Instances> folds = WekaUtil.realizeSplit(data, instancesInFolds);
+			return folds.get(1);
+		}
+
+		return null;
 	}
 }
