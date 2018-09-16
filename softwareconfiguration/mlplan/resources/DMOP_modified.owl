@@ -7276,6 +7276,14 @@ Ref: I. Guyon, S. Gunn, M. Nikravesh and L. A. Zadeh. Feature Extraction: Founda
     
 
 
+    <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedyFSAlgorithm -->
+
+    <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedyFSAlgorithm">
+        <rdfs:subClassOf rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#FeatureSelectionAlgorithm"/>
+    </owl:Class>
+    
+
+
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedySearch -->
 
     <owl:Class rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedySearch">
@@ -18059,7 +18067,7 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.BestFirst -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.BestFirst">
-        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedySearch"/>
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedyFSAlgorithm"/>
     </owl:NamedIndividual>
     
 
@@ -18067,7 +18075,7 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.CfsSubsetEval -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.CfsSubsetEval">
-        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#FeatureWeightingAlgorithm"/>
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#FeatureSubsetWeightingAlgorithm"/>
     </owl:NamedIndividual>
     
 
@@ -18091,7 +18099,7 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.GreedyStepwise -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.GreedyStepwise">
-        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedySearch"/>
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedyFSAlgorithm"/>
     </owl:NamedIndividual>
     
 
@@ -18123,7 +18131,7 @@ Ref. Hyvarinen et al. (2001). Independent Component Analysis, Wiley.</definition
     <!-- http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.Ranker -->
 
     <owl:NamedIndividual rdf:about="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#weka.attributeSelection.Ranker">
-        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#GreedySearch"/>
+        <rdf:type rdf:resource="http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl#FeatureRankingAlgorithm"/>
     </owl:NamedIndividual>
     
 

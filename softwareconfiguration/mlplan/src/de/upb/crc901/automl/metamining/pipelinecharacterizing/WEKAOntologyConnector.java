@@ -25,6 +25,25 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
  */
 public class WEKAOntologyConnector implements IOntologyConnector {
 
+	/**
+	 * Location of the ontology used by this connector
+	 */
+	private static final String ontologyFileName = "DMOP_modified.owl";
+
+	/**
+	 * IRI of the elements in this ontology
+	 */
+	private static final String ontologyIRI = "http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl";
+
+	/**
+	 * Separator that separates the ontology IRI from the name of an ontology
+	 * element
+	 */
+	private static final String ontologyIRISeparator = "#";
+
+	/**
+	 * List of all classifiers that can be characterized by this ontology connector
+	 */
 	private static final List<String> classifierPortfolio = Arrays.asList("weka.classifiers.bayes.BayesNet",
 			"weka.classifiers.bayes.NaiveBayes", "weka.classifiers.bayes.NaiveBayesMultinomial",
 			"weka.classifiers.functions.Logistic", "weka.classifiers.functions.MultilayerPerceptron",
@@ -42,31 +61,66 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 			"weka.classifiers.trees.M5P", "weka.classifiers.rules.M5Rules",
 			"weka.classifiers.functions.SimpleLinearRegression");
 
+	/**
+	 * List of all evaluators (for a data-preprocessor) that can be characterized by
+	 * this ontology connector
+	 */
 	private static final List<String> evaluatorPortfolio = Arrays.asList("weka.attributeSelection.CfsSubsetEval",
 			"weka.attributeSelection.CorrelationAttributeEval", "weka.attributeSelection.GainRatioAttributeEval",
 			"weka.attributeSelection.InfoGainAttributeEval", "weka.attributeSelection.OneRAttributeEval",
 			"weka.attributeSelection.PrincipalComponents", "weka.attributeSelection.ReliefFAttributeEval",
 			"weka.attributeSelection.SymmetricalUncertAttributeEval");
 
+	/**
+	 * List of all searchers (for a data-preprocessor) that can be characterized by
+	 * this ontology connector
+	 */
 	private static final List<String> searcherPortfolio = Arrays.asList("weka.attributeSelection.BestFirst",
 			"weka.attributeSelection.GreedyStepwise", "weka.attributeSelection.Ranker");
 
+	/**
+	 * List of all kernel functions that can be characterized by this ontology
+	 * connector
+	 */
 	private static final List<String> kernelFunctionPortfolio = Arrays.asList(
 			"weka.classifiers.functions.supportVector.Puk", "weka.classifiers.functions.supportVector.RBFKernel",
 			"weka.classifiers.functions.supportVector.PolyKernel",
 			"weka.classifiers.functions.supportVector.NormalizedPolyKernel");
 
-	private static final String ontologyFileName = "DMOP_modified.owl";
-	private static final String ontologyIRI = "http://www.e-lico.eu/ontologies/dmo/DMOP/DMOP.owl";
-	private static final String ontologyIRISeparator = "#";
-
+	/**
+	 * The common ancestor of all classifiers in the ontology
+	 */
 	private static final String classifierTopNode = "ModelingAlgorithm";
-	private static final String searcherTopNode = "SearchStrategy";
+
+	/**
+	 * The common ancestor of all searchers in the ontology
+	 */
+	private static final String searcherTopNode = "DataProcessingAlgorithm";
+
+	/**
+	 * The common ancestor of all evaluator in the ontology
+	 */
 	private static final String evaluatorTopNode = "DataProcessingAlgorithm";
+
+	/**
+	 * The common ancestor of all kernel functions in the ontology
+	 */
 	private static final String kernelFunctionTopNode = "KernelFunction";
 
+	/**
+	 * The data factory used to get ontology elements from Strings
+	 */
 	private OWLDataFactory dataFactory;
+
+	/**
+	 * The used ontology as an object
+	 */
 	private OWLOntology ontology;
+
+	/**
+	 * Whether equals relations shall also be included in the returned
+	 * characterization
+	 */
 	private boolean includeEqualSuperClasses = true;
 
 	/**
@@ -163,6 +217,14 @@ public class WEKAOntologyConnector implements IOntologyConnector {
 		return ancestorNames;
 	}
 
+	/**
+	 * Appends the given name of an ontology element to the IRI of the used
+	 * ontology, separated by a specified separator.
+	 * 
+	 * @param name
+	 *            The name of the ontology element
+	 * @return The fully qualified name of the ontology element
+	 */
 	private String getAsOntologyElement(String name) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(ontologyIRI);
