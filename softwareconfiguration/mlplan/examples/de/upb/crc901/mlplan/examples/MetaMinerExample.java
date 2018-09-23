@@ -24,6 +24,7 @@ public class MetaMinerExample {
 
 	public static void main(String[] args) throws Exception {
 		// Load data for a data set and create a train-test-split
+		System.out.println("Example: Load data.");
 		OpenmlConnector connector = new OpenmlConnector();
 		DataSetDescription ds = connector.dataGet(40984);
 		File file = ds.getDataset("4350e421cdc16404033ef1812ea38c01");
@@ -31,13 +32,21 @@ public class MetaMinerExample {
 		data.setClassIndex(data.numAttributes() - 1);
 		List<Instances> split = WekaUtil.getStratifiedSplit(data, new Random(0), .7f);
 
-		// Initialize meta mlplan and let it run for 30 seconds
+		// Initialize meta mlplan and let it run for 2 minutes
+		System.out.println("Example: Configure ML-Plan");
 		MetaMLPlan metaMLPlan = new MetaMLPlan();
 		metaMLPlan.setCPUs(4);
-		metaMLPlan.setTimeOutInMilliSeconds(30);
+		metaMLPlan.setTimeOutInMilliSeconds(120000);
+		metaMLPlan.setMetaFeatureSetName("all");
+		metaMLPlan.setDatasetSetName("metaminer_standard");
+		// Limit results to 5000 pipelines so that the conversion / downloading doesn't take too long
+		System.out.println("Example: build meta components");
+		metaMLPlan.buildMetaComponents(args[0], args[1], args[2], 4);
+		System.out.println("Example: find solution");
 		metaMLPlan.buildClassifier(split.get(0));
 
 		// Evaluate solution produced by meta mlplan
+		System.out.println("Example: ");
 		Evaluation eval = new Evaluation(split.get(0));
 		eval.evaluateModel(metaMLPlan, split.get(1));
 		System.out.println("Error Rate of the solution produced by Meta ML-Plan: " + (100 - eval.pctCorrect()) / 100f);

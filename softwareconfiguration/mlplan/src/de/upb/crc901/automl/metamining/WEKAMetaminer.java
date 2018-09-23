@@ -1,5 +1,6 @@
 package de.upb.crc901.automl.metamining;
 
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class WEKAMetaminer implements IMetaMiner {
 
 		// ----- Data set Characterization -----
 
-		dataSetMetaFeaturesAttributes = metaFeatureInformation.enumerateAttributes();
+		dataSetMetaFeaturesAttributes = metaFeatureInformation.enumerateAttributes();		
 
 		// Convert to matrix (Matrix X with rows representing data sets)
 		INDArray datasetsMetafeatures = Nd4j.create(metaFeatureInformation.size() - 1,
@@ -73,19 +74,25 @@ public class WEKAMetaminer implements IMetaMiner {
 		for (int i = 1; i < metaFeatureInformation.size(); i++) {
 			datasetsMetafeatures.putRow(i - 1, Nd4j.create(metaFeatureInformation.get(i).toDoubleArray()));
 		}
+		System.out.println("WEKAMetaminer: dataset metafeatures: " + datasetsMetafeatures.rows() + " x " + datasetsMetafeatures.columns());
 
 		// ----- Pipeline Characterization -----
 
 		// Compute relative performance ranks of pipelines on data sets
+		System.out.println("WEKAMetaminer: Computing relative performance Matrix.");
 		INDArray rankMatrix = similarityComputer.computeRelativeRankMatrix(performanceValues);
+		System.out.println("WEKAMetaminer: rank matrix: " + rankMatrix.rows() + " x " + rankMatrix.columns());
 
 		// Initialize PipelineCharacterizer with list of distinct pipelines
+		System.out.println("WEKAMetaminer: Initializing pipeline characterizer.");
 		pipelineCharacterizer.build(distinctPipelines);
 
 		// Get Characterization of base pipelines from PipelineCharacterizer (Matrix W)
 		INDArray pipelinesMetafeatures = Nd4j.create(pipelineCharacterizer.getCharacterizationsOfTrainingExamples());
+		System.out.println("WEKAMetaminer: Pipeline Metafeatures: " + pipelinesMetafeatures.rows() + " x " + pipelinesMetafeatures.columns());
 
 		// Initialize HeterogenousSimilarityMeasures
+		System.out.println("WEKAMetaminer: Create similarity measure.");
 		similarityMeasure.build(datasetsMetafeatures, pipelinesMetafeatures, rankMatrix);
 
 		// Building is finished
@@ -94,10 +101,10 @@ public class WEKAMetaminer implements IMetaMiner {
 
 	public void setDataSetCharacterization(Map<String, Double> datasetCharacterization) {
 		// Characterize the given data set with characterizer (set x)
-		datasetMetafeatures = Nd4j.create(datasetCharacterization.size());
-		int i = 0;
-		for (Enumeration<Attribute> attributes = dataSetMetaFeaturesAttributes; attributes.hasMoreElements(); i++) {
-			datasetMetafeatures.putScalar(i, datasetCharacterization.get(attributes.nextElement().name()));
+		datasetMetafeatures = Nd4j.create(datasetCharacterization.size());		
+		List<Attribute> attributes = Collections.list(dataSetMetaFeaturesAttributes);
+		for (int i = 0; i < attributes.size(); i++) {
+			datasetMetafeatures.putScalar(i, datasetCharacterization.get(attributes.get(i).name()));
 		}
 	}
 

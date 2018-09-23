@@ -3,6 +3,7 @@ package de.upb.crc901.automl.metamining;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.Timer;
@@ -63,7 +64,6 @@ public class MetaMLPlan extends AbstractClassifier {
 	}
 
 	public MetaMLPlan(File configFile) throws IOException {
-		// Get the graph generator from the reduction
 		HASCOProblemReduction reduction = new HASCOProblemReduction(configFile, "AbstractClassifier", true);
 		GraphGenerator<TFDNode, String> graphGenerator = reduction
 				.getGraphGeneratorUsedByHASCOForSpecificPlanner(new ForwardDecompositionHTNPlannerFactory<Double>());
@@ -75,6 +75,16 @@ public class MetaMLPlan extends AbstractClassifier {
 	public void buildMetaComponents(String host, String user, String password) throws Exception {
 		ExperimentRepository repo = new ExperimentRepository(host, user, password,
 				new MLPipelineComponentInstanceFactory(components), CPUs, metaFeatureSetName, datasetSetName);
+		metaMiner.build(repo.getDistinctPipelines(), repo.getDatasetCahracterizations(),
+				repo.getPipelineResultsOnDatasets());
+	}
+	
+	public void buildMetaComponents(String host, String user, String password, int limit) throws Exception {
+		//TODO maybe some sophisticated selection for limit? / temporary method
+		System.out.println("MetaMLPlan: Get past experiment data from data base and build MetaMiner.");
+		ExperimentRepository repo = new ExperimentRepository(host, user, password,
+				new MLPipelineComponentInstanceFactory(components), CPUs, metaFeatureSetName, datasetSetName);
+		repo.setLimit(limit);
 		metaMiner.build(repo.getDistinctPipelines(), repo.getDatasetCahracterizations(),
 				repo.getPipelineResultsOnDatasets());
 	}
@@ -111,10 +121,13 @@ public class MetaMLPlan extends AbstractClassifier {
 		bestModel = null;
 		double bestScore = 1;
 		double bestModelExpectedTrainingTime = 0;
+
 		while (!lds.isInterrupted()) {
 			List<TFDNode> solution = lds.nextSolution();
-			if (solution == null)
+			if (solution == null) {
+				System.out.println("Ran out of solutions.");
 				break;
+			}
 			try {
 				// Prepare pipeline
 				ComponentInstance ci = Util.getSolutionCompositionFromState(components,
@@ -122,10 +135,13 @@ public class MetaMLPlan extends AbstractClassifier {
 				MLPipeline pl = factory.getComponentInstantiation(ci);
 
 				// Evaluate pipeline
-				trainingTimer.start();
-				double score = mccv.evaluate(pl);
-				trainingTimer.stop();
 				trainingTimer.reset();
+				trainingTimer.start();
+				System.out.println("Evaluate Pipeline: " + pl);
+				double score = mccv.evaluate(pl);
+				System.out.println("Score: " + score);
+				trainingTimer.stop();
+		
 
 				// Check if better than previous best
 				System.out.println(score + " " + pl);

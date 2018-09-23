@@ -88,12 +88,14 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 	public void build(List<ComponentInstance> pipelines) {
 		// Convert the pipelines to String representations
 		List<String> pipelineRepresentations = new ArrayList<String>();
+		System.out.println("WEKAPipelineCharacterizer: Converting training examples to trees.");
 		pipelines.forEach(pipeline -> {
 			pipelineRepresentations.add(makeStringTreeRepresentation(pipeline));
 		});
 
 		// Use the tree miner to find patterns
-		foundPipelinePatterns = treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);
+		System.out.println("WEKAPipelineCharacterizer: Find frequent subtrees.");
+		foundPipelinePatterns = treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);		
 	}
 
 	@Override
@@ -219,8 +221,6 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 			// Check if the parameter even has a value!
 			String parameterName = parameter.getName();
 			if (!componentInstance.getParameterValues().containsKey(parameterName)) {
-				System.out.println("Parameter " + parameterName + " has no value for "
-						+ componentInstance.getComponent().getName());
 				continue;
 
 			}
@@ -235,9 +235,6 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 				NumericParameterDomain parameterDomain = ((NumericParameterDomain) parameter.getDefaultDomain());
 				Interval currentInterval = null;
 				Interval nextInterval = new Interval(parameterDomain.getMin(), parameterDomain.getMax());
-				System.out.println("Try to parse numeric parameter " + parameterName + " with Domain " + parameterDomain
-						+ " with value " + componentInstance.getParameterValues().get(parameterName) + " and Component "
-						+ componentInstance.getComponent().getName());
 				double parameterValue = Double.parseDouble(componentInstance.getParameterValues().get(parameterName));
 				double precision = parameterValue == 0 ? 0 : Math.ulp(parameterValue);
 
