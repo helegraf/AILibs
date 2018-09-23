@@ -39,6 +39,10 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 		double score1 = metaminer.score(convertToComponentInstance(o1));
 		double score2 = metaminer.score(convertToComponentInstance(o2));
 
+		//TODO remove / log properly
+		System.out.println("Comparing nodes: ");
+		System.out.println(o1 + " " + score1);
+		System.out.println(o2 + " " + score2);
 		return (int) Math.signum(score1 - score2);
 	}
 
