@@ -35,7 +35,7 @@ public class ComponentInstanceDatabaseGetter extends Thread {
 	@Override
 	public void run() {
 		//TODO adapt this query so that it includes the parameters of preprocessors
-		String query = "SELECT pipeline, GROUP_CONCAT( CONCAT (dataset, ',', errorRate) SEPARATOR ';') AS results FROM (SELECT pipeline, errorRate, run_id FROM evaluations) AS A INNER JOIN (SELECT run_id, dataset FROM runs) AS B ON A.run_id = B.run_id WHERE pipeline NOT LIKE '%jaicore.ml.classification.multiclass.reduction.MCTreeNodeReD%' GROUP BY pipeline ORDER BY pipeline LIMIT "
+		String query = "SELECT pipeline, GROUP_CONCAT( CONCAT (dataset, ',', errorRate) SEPARATOR ';') AS results FROM (SELECT pipeline, errorRate, run_id FROM evaluations) AS A INNER JOIN (SELECT run_id, dataset FROM runs WHERE dataset NOT LIKE \"testrsc/all/autoUnivau6750.arff\") AS B ON A.run_id = B.run_id WHERE pipeline NOT LIKE '%jaicore.ml.classification.multiclass.reduction.MCTreeNodeReD%' GROUP BY pipeline ORDER BY pipeline LIMIT "
 				+ limit + " OFFSET " + offset;
 
 		try {
