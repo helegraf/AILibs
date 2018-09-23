@@ -51,8 +51,8 @@ public class F3Optimizer implements IHeterogenousSimilarityMeasureComputer {
 		final int m = W.rows();
 		final int l = W.columns();
 		final int numberOfImplicitFeatures = 1;
-		System.out.println("X = " + X + " (" + n + " x " + X.columns() + ")");
-		System.out.println("W = " + W + " (" + m + " x " + W.columns() + ")");
+		System.out.println("X = " + " (" + n + " x " + X.columns() + ")");
+		System.out.println("W = " + " (" + m + " x " + W.columns() + ")");
 
 		/* generate initial U and V vectors */
 		boolean succesfullyBooted = false;
