@@ -10,6 +10,7 @@ import dataHandling.mySQL.MetaDataDataBaseConnection;
 import de.upb.crc901.automl.hascowekaml.MLPipelineComponentInstanceFactory;
 import hasco.model.ComponentInstance;
 import jaicore.basic.SQLAdapter;
+import weka.core.DenseInstance;
 import weka.core.Instances;
 
 /**
@@ -28,6 +29,7 @@ public class ExperimentRepository {
 	private int CPUs;
 	private String metaFeatureSetName;
 	private String datasetSetName;
+	private Integer limit;
 
 	private List<HashMap<String, List<Double>>> pipelinePerformances = new ArrayList<HashMap<String, List<Double>>>();
 	private MetaDataDataBaseConnection metaDataBaseConnection;
@@ -44,18 +46,24 @@ public class ExperimentRepository {
 		this.datasetSetName = datasetSetName;
 	}
 
-	public List<ComponentInstance> getDistinctPipelines() throws Exception {
+	public List<ComponentInstance> getDistinctPipelines() throws Exception {		
 		connect();
-
+		System.out.println("ExperimentRepository: Get distinct pipelines.");
+		// TODO also adapt query here to change of including hyperparameters of
+		// preprocessors (STATEMENT BELOW DOESN'T HAVE ACTUAL COLUMN NAMES
 		String query = "SELECT COUNT(DISTINCT pipeline) FROM evaluations";
+		// String query = "SELECT COUNT(DISTINCT pipeline, searcherParameter,
+		// evaluatorParameter) FROM evaluations";
 		ResultSet resultSet = adapter.getResultsOfQuery(query);
 		resultSet.next();
 		int distinctPipelineCount = resultSet.getInt("COUNT(DISTINCT pipeline)");
+		distinctPipelineCount = limit == null ? distinctPipelineCount : limit;
 		System.out.println(distinctPipelineCount + " distinct pipelines will be downloaded.");
 
 		int chunkSize = Math.floorDiv(distinctPipelineCount, CPUs);
 		int lastchunkSize = distinctPipelineCount - (chunkSize * (CPUs - 1));
 
+		System.out.println("ExperimentRepository: Allocate Getter-Threads.");
 		ComponentInstanceDatabaseGetter[] threads = new ComponentInstanceDatabaseGetter[CPUs];
 
 		for (int i = 0; i < threads.length; i++) {
@@ -84,11 +92,15 @@ public class ExperimentRepository {
 		return pipelines;
 	}
 
-	public Instances getDatasetCahracterizations() {
-		// get distinct data sets (ordered=
-
+	public Instances getDatasetCahracterizations() throws SQLException {
 		// get data set characterizations
-		return null;
+		System.out.println("ExperimentRepository: Downloading dataset characterizations.");
+		Instances metaData = metaDataBaseConnection.getMetaDataSetForDataSetSet(datasetSetName, metaFeatureSetName);
+		//TODO remove this!!!!
+		metaData.add(new DenseInstance(metaData.numAttributes()));
+		metaData.add(new DenseInstance(metaData.numAttributes()));
+		metaData.deleteAttributeAt(0);
+		return metaData;
 	}
 
 	/**
@@ -101,15 +113,32 @@ public class ExperimentRepository {
 	 *             If something goes wrong while connecting to the database
 	 */
 	public double[][][] getPipelineResultsOnDatasets() throws SQLException {
-		// These ONLY need to be in the same order dataset-wise as get
-		// datasetcharacterizations
+		System.out.println("ExperimentRepository: Get inidividual pipeline results.");
+		connect();
+
+		// Get order of datasets
 		List<String> datasets = metaDataBaseConnection.getMembersOfMetadataSet(metaFeatureSetName);
 
 		// Map hgraf datasets to mlplan_results datasets
 		HashMap<String, String> datasetNameToIndexMap = new HashMap<>();
-		// TODO get all the dataset mappings and select those who have no ml plan id as
-		// isys id otherwise ml plan id
 
+		String query = "SELECT isys_id, cluster_location_old, openML_dataset_id FROM `pgotfml_hgraf`.`dataset_id_mapping`";
+		ResultSet resultSet = adapter.getResultsOfQuery(query);
+
+		while (resultSet.next()) {
+			if (resultSet.getObject("openML_dataset_id") != null) {
+				// dataset has openML equivalence
+				datasetNameToIndexMap.put(resultSet.getInt("openML_dataset_id") + ":openML_dataset_id",
+						resultSet.getString("cluster_location_old"));
+			} else {
+				// dataset does not have openML equivalence
+				// TODO the : should come from a centralized place / merging from central place
+				datasetNameToIndexMap.put(resultSet.getInt("isys_id") + ":isys_id",
+						resultSet.getString("cluster_location_old"));
+			}
+		}
+
+		// Organize results into matrix
 		double[][][] results = new double[datasetNameToIndexMap.size()][pipelinePerformances.size()][];
 
 		for (int j = 0; j < datasets.size(); j++) {
@@ -122,46 +151,11 @@ public class ExperimentRepository {
 				}
 			}
 		}
+
+		disconnect();
+
 		return results;
 	}
-
-	// /**
-	// * Returns the characterization of the data set if it is available in the data
-	// * base and null otherwise
-	// *
-	// * @param dataSetName
-	// * @return
-	// * @throws SQLException
-	// */
-	// public HashMap<String, Double> getCharacterizationForDataset(String
-	// dataSetName, String metaFeatureSetName)
-	// throws SQLException {
-	// throw new UnsupportedOperationException();
-	// // TODO need to get data set id for name (implement properly) to speed up
-	// evaluation
-	//// int datasetId = 0;
-	////
-	//// // get chara for data set id
-	//// Instances metaDataForInstance = connect.getMetaDataSetForDataSet(datasetId,
-	// metaFeatureSetName);
-	//// metaDataForInstance.deleteAttributeAt(0);
-	////
-	//// boolean onlyNans = true;
-	//// HashMap<String, Double> mfValues = new HashMap<String, Double>();
-	//// for (int i = 0; i < metaDataForInstance.numAttributes(); i++) {
-	//// mfValues.put(metaDataForInstance.attribute(i).name(),
-	// metaDataForInstance.get(0).value(i));
-	//// if (!Double.isNaN(metaDataForInstance.get(0).value(i))) {
-	//// onlyNans = false;
-	//// }
-	//// }
-	////
-	//// if (onlyNans) {
-	//// return null;
-	//// }
-	////
-	//// return mfValues;
-	// }
 
 	private void connect() {
 		adapter = new SQLAdapter(host, user, password, "mlplan_results");
@@ -169,5 +163,9 @@ public class ExperimentRepository {
 
 	private void disconnect() {
 		adapter.close();
+	}
+
+	public void setLimit(Integer limit) {
+		this.limit = limit;
 	}
 }
