@@ -129,8 +129,6 @@ public class MLPipelineComponentInstanceFactory {
 			String optionName = null;
 			boolean previousStringWasAValue = true;
 
-			System.out.println(
-					"Options: " + Collections.list(handler.getOptions()) + " " + classifier.getClass().getName());
 			for (String option : handler.getOptions()) {
 				if (option.equals("--")) {
 					// TODO here all classifier parameters (i.e. for meta classifiers and such) are
@@ -143,7 +141,6 @@ public class MLPipelineComponentInstanceFactory {
 					// Current String is option
 					if (!previousStringWasAValue) {
 						parametersWithValues.put(optionName, "true");
-						System.out.println("Add: " + optionName + " true");
 					}
 
 					previousStringWasAValue = false;
@@ -152,7 +149,6 @@ public class MLPipelineComponentInstanceFactory {
 					// Current String is value
 					previousStringWasAValue = true;
 					parametersWithValues.put(optionName, option);
-					System.out.println("Add " + optionName + " " + option);
 				}
 
 			}
