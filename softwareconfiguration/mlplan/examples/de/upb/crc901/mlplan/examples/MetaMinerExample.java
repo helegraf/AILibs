@@ -9,7 +9,7 @@ import java.util.Random;
 import org.openml.apiconnector.io.OpenmlConnector;
 import org.openml.apiconnector.xml.DataSetDescription;
 
-import de.upb.crc901.automl.metamining.MetaMLPlan;
+import de.upb.crc901.mlplan.metamining.MetaMLPlan;
 import jaicore.ml.WekaUtil;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;

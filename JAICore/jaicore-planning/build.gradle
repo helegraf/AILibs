@@ -11,13 +11,13 @@ sourceSets {
     }
 }
 dependencies {
-
-	compile 'com.github.pellierd:pddl4j:v3.5.0'
-    runtime 'com.github.pellierd:pddl4j:v3.5.0'
-
 	compile project(":JAICore:jaicore-search")
 	compile project(":JAICore:jaicore-basic")
 	compile project(":JAICore:jaicore-logic")
 	compile project(":JAICore:jaicore-graphvisualizer")
 	compile project(":JAICore:jaicore-graph")
+	
+	//pddl4j
+	compile 'com.github.pellierd:pddl4j:v3.5.0'
+	runtime 'com.github.pellierd:pddl4j:v3.5.0'
 }

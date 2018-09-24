@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public class TimeoutTimer {
 	private final static Logger logger = LoggerFactory.getLogger(TimeoutTimer.class);
 	private final static TimeoutTimer instance = new TimeoutTimer();
-	private Timer timer;
+	private Timer timer = null;
 	private final List<TimeoutSubmitter> emittedSubmitters = new ArrayList<>();
 	private final Map<Integer, TimerTask> tasks = new HashMap<>();
 
@@ -30,6 +30,17 @@ public class TimeoutTimer {
 		return submitter;
 	}
 
+	@Override
+	public String toString() {
+		return this.tasks.toString();
+	}
+
+	public void stop() {
+		if (this.timer != null) {
+			this.timer.cancel();
+		}
+	}
+
 	public class TimeoutSubmitter {
 		private TimeoutSubmitter() {
 			synchronized (instance) {
@@ -38,13 +49,27 @@ public class TimeoutTimer {
 		}
 
 		public int interruptMeAfterMS(final long delay) {
+			logger.info("Scheduling interrupt for thread {} in {}ms", Thread.currentThread(), delay);
 			return this.interruptThreadAfterMS(Thread.currentThread(), delay);
 		}
-
+		
+		public int interruptMeAfterMS(final long delay, Runnable preInterruptionHook) {
+			logger.info("Scheduling interrupt for thread {} in {}ms", Thread.currentThread(), delay);
+			return this.interruptThreadAfterMS(Thread.currentThread(), delay, preInterruptionHook);
+		}
+		
 		public int interruptThreadAfterMS(final Thread thread, final long delay) {
+			return interruptThreadAfterMS(thread, delay, null);
+		}
+
+		public int interruptThreadAfterMS(final Thread thread, final long delay, Runnable preInterruptionHook) {
 			return this.scheduleTask(new TimerTask() {
 				@Override
 				public void run() {
+					if (preInterruptionHook != null) {
+						logger.info("Executing pre-interruption hook.");
+						preInterruptionHook.run();
+					}
 					logger.info("interrupting thread {} after delay {}ms", thread, delay);
 					thread.interrupt();
 				}
@@ -74,8 +99,7 @@ public class TimeoutTimer {
 		private synchronized int scheduleTask(final TimerTask task, final long delay) {
 			synchronized (instance) {
 				if (!TimeoutTimer.this.emittedSubmitters.contains(this)) {
-					throw new IllegalStateException(
-							"Cannot submit interrupt job to submitter " + this + " since it has already been closed!");
+					throw new IllegalStateException("Cannot submit interrupt job to submitter " + this + " since it has already been closed!");
 				}
 				if (TimeoutTimer.this.timer == null) {
 					TimeoutTimer.this.timer = new Timer(TimeoutTimer.class.getName() + " - Timer");

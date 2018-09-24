@@ -1,5 +1,7 @@
 package de.upb.crc901.automl.metamining.similaritymeasures;
 
+import de.upb.crc901.mlplan.metamining.similaritymeasures.RelativeRankMatricComputer;
+
 public class RankMatrixSimilarityComputerTest {
 	public void testComputeSimilarity() {
 		double[][][] performanceValues = {{{0.9,0.8,0.9,0.8},null,{0.5,0.5,0.5,0.5}},
