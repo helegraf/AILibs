@@ -8,9 +8,11 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.aeonbits.owner.ConfigCache;
 import org.apache.commons.lang3.time.StopWatch;
 
 import de.upb.crc901.mlplan.metamining.databaseconnection.ExperimentRepository;
+import de.upb.crc901.mlplan.multiclass.MLPlanClassifierConfig;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.MLPlanWekaClassifier;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.MLPipelineComponentInstanceFactory;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.WEKAPipelineFactory;
@@ -60,17 +62,18 @@ public class MetaMLPlan extends AbstractClassifier {
 	private Classifier bestModel;
 	private Collection<Component> components;
 
-	public MetaMLPlan() throws IOException {
-		this(new File("model/weka/weka-all-autoweka.json"));
+	public MetaMLPlan(Instances data) throws IOException {
+		this(new File("conf/automl/searchmodels/weka/weka-all-autoweka.json"), data);
 	}
 
-	public MetaMLPlan(File configFile) throws IOException {
-		MLPlanWekaClassifier mlPlan = new MLPlanWekaClassifier(configFile, factory, null, null) {
+	public MetaMLPlan(File configFile, Instances data) throws IOException {
+		MLPlanWekaClassifier mlPlan = new MLPlanWekaClassifier(configFile, factory, null, ConfigCache.getOrCreate(MLPlanClassifierConfig.class)) {
 			@Override
 			protected INodeEvaluator<TFDNode, Double> getSemanticNodeEvaluator(Instances data) {
 				return null;
 			}
 		};
+		mlPlan.setData(data);
 		this.components = mlPlan.getComponents();
 		metaMiner = new WEKAMetaminer(mlPlan.getComponentParamRefinements());
 		BestFirstLimitedDiscrepancySearchFactory<TFDNode, String, NodeOrderList> ldsFactory = new BestFirstLimitedDiscrepancySearchFactory<>();
@@ -130,12 +133,12 @@ public class MetaMLPlan extends AbstractClassifier {
 		double bestModelExpectedTrainingTime = 0;
 
 		while (!lds.isCanceled()) {
-			List<TFDNode> solution = lds.nextSolution();
-			if (solution == null) {
-				System.out.println("Ran out of solutions.");
-				break;
-			}
 			try {
+				List<TFDNode> solution = lds.nextSolution();
+				if (solution == null) {
+					System.out.println("Ran out of solutions.");
+					break;
+				}
 				// Prepare pipeline
 				ComponentInstance ci = Util.getSolutionCompositionFromState(components,
 						solution.get(solution.size() - 1).getState(), true);

@@ -34,7 +34,7 @@ public class MetaMinerExample {
 
 		// Initialize meta mlplan and let it run for 2 minutes
 		System.out.println("Example: Configure ML-Plan");
-		MetaMLPlan metaMLPlan = new MetaMLPlan();
+		MetaMLPlan metaMLPlan = new MetaMLPlan(data);
 		metaMLPlan.setCPUs(4);
 		metaMLPlan.setTimeOutInMilliSeconds(120000);
 		metaMLPlan.setMetaFeatureSetName("all");

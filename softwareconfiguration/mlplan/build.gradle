@@ -42,7 +42,7 @@ dependencies {
 	compile 'com.github.helegraf:TreeMiner:-SNAPSHOT'
 	
 	// Data-Handling (meta data and classifier perf. values data base connection)
-	implementation ('com.github.helegraf:data-handling:-SNAPSHOT') {
+	compile ('com.github.helegraf:data-handling:-SNAPSHOT') {
 		exclude group: 'nz.ac.waikato.cms.weka', module: 'weka-stable'
 	}
 	

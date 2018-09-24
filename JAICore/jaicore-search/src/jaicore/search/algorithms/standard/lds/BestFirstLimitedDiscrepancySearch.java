@@ -52,12 +52,18 @@ public class BestFirstLimitedDiscrepancySearch<T, A, V extends Comparable<V>> ex
 
 			/* add the label sequence of the parent to this node*/
 			list.addAll((NodeOrderList) parent.getInternalLabel());
+			System.out.println(childOrdering);
+			System.out.println(childOrdering.get(parent));
+			System.out.println(node);
+			System.out.println(node.getPoint());
+			System.out.println(childOrdering.get(parent).indexOf(node.getPoint()));
 			list.add(childOrdering.get(parent).indexOf(node.getPoint()));
 			return list;
 		}
 
 		@Subscribe
 		public void receiveSuccessorsCreatedEvent(SuccessorComputationCompletedEvent<T, ?> successorDescriptions) {
+			System.out.println("Called this method");
 			List<T> successors = successorDescriptions.getSuccessorDescriptions().stream().map(n -> n.getTo()).sorted(heuristic).collect(Collectors.toList());
 			childOrdering.put(successorDescriptions.getNode(), successors);
 		}
