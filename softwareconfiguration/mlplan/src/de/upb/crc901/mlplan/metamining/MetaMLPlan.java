@@ -27,11 +27,10 @@ import jaicore.ml.metafeatures.GlobalCharacterizer;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import jaicore.search.algorithms.standard.AbstractORGraphSearch;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.INodeEvaluator;
-import jaicore.search.algorithms.standard.lds.BestFirstLimitedDiscrepancySearch;
 import jaicore.search.algorithms.standard.lds.BestFirstLimitedDiscrepancySearchFactory;
 import jaicore.search.algorithms.standard.lds.NodeOrderList;
-import jaicore.search.core.interfaces.GraphGenerator;
 import jaicore.search.model.other.EvaluatedSearchGraphPath;
+import jaicore.search.model.other.SearchGraphPath;
 import jaicore.search.model.probleminputs.NodeRecommendedTree;
 import jaicore.search.model.travesaltree.Node;
 import weka.classifiers.AbstractClassifier;
@@ -67,17 +66,24 @@ public class MetaMLPlan extends AbstractClassifier {
 	}
 
 	public MetaMLPlan(File configFile, Instances data) throws IOException {
-		MLPlanWekaClassifier mlPlan = new MLPlanWekaClassifier(configFile, factory, null, ConfigCache.getOrCreate(MLPlanClassifierConfig.class)) {
+		// Prepare mlPlan to get a graphGenerator
+		MLPlanWekaClassifier mlPlan = new MLPlanWekaClassifier(configFile, factory, null,
+				ConfigCache.getOrCreate(MLPlanClassifierConfig.class)) {
 			@Override
 			protected INodeEvaluator<TFDNode, Double> getSemanticNodeEvaluator(Instances data) {
 				return null;
 			}
 		};
 		mlPlan.setData(data);
+		
+		// Set search components except lds
 		this.components = mlPlan.getComponents();
-		metaMiner = new WEKAMetaminer(mlPlan.getComponentParamRefinements());
+		this.metaMiner = new WEKAMetaminer(mlPlan.getComponentParamRefinements());
+
+		// Get lds
 		BestFirstLimitedDiscrepancySearchFactory<TFDNode, String, NodeOrderList> ldsFactory = new BestFirstLimitedDiscrepancySearchFactory<>();
-		NodeRecommendedTree<TFDNode, String> problemInput = new NodeRecommendedTree<>(mlPlan.getGraphGenerator(),new MetaMinerBasedSorter(metaMiner, mlPlan.getComponents()));
+		NodeRecommendedTree<TFDNode, String> problemInput = new NodeRecommendedTree<>(mlPlan.getGraphGenerator(),
+				new MetaMinerBasedSorter(metaMiner, mlPlan.getComponents()));
 		ldsFactory.setProblemInput(problemInput);
 		this.lds = ldsFactory.getAlgorithm();
 	}
@@ -106,7 +112,7 @@ public class MetaMLPlan extends AbstractClassifier {
 
 			@Override
 			public void run() {
-				System.out.println("Interrupting search because time is running out.");
+				System.out.println("MetaMLPlan: Interrupting search because time is running out.");
 				lds.cancel();
 			}
 		};
@@ -117,16 +123,16 @@ public class MetaMLPlan extends AbstractClassifier {
 		totalTimer.start();
 
 		// Characterize data set and give to meta miner
-		System.out.println("Characterizing data set");
+		System.out.println("MetaMLPlan: Characterizing data set");
 		metaMiner.setDataSetCharacterization(new GlobalCharacterizer().characterize(data));
 
 		// Preparing the split for validating pipelines
-		System.out.println("Preparing validation split");
+		System.out.println("MetaMLPlan: Preparing validation split");
 		MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(
 				new MulticlassEvaluator(new Random(0)), 3, data, .7f);
 
 		// Search for solutions
-		System.out.println("Searching for solutions");
+		System.out.println("MetaMLPlan: Searching for solutions");
 		StopWatch trainingTimer = new StopWatch();
 		bestModel = null;
 		double bestScore = 1;
@@ -134,11 +140,14 @@ public class MetaMLPlan extends AbstractClassifier {
 
 		while (!lds.isCanceled()) {
 			try {
-				List<TFDNode> solution = lds.nextSolution();
+				SearchGraphPath<TFDNode, String> searchGraphPath = lds.nextSolution();
+				List<TFDNode> solution = searchGraphPath.getNodes();
+
 				if (solution == null) {
-					System.out.println("Ran out of solutions.");
+					System.out.println("MetaMLPlan: Ran out of solutions. Search is over.");
 					break;
 				}
+
 				// Prepare pipeline
 				ComponentInstance ci = Util.getSolutionCompositionFromState(components,
 						solution.get(solution.size() - 1).getState(), true);
@@ -147,9 +156,9 @@ public class MetaMLPlan extends AbstractClassifier {
 				// Evaluate pipeline
 				trainingTimer.reset();
 				trainingTimer.start();
-				System.out.println("Evaluate Pipeline: " + pl);
+				System.out.println("MetaMLPlan: Evaluate Pipeline: " + pl);
 				double score = mccv.evaluate(pl);
-				System.out.println("Score: " + score);
+				System.out.println("MetaMLPlan: Pipeline Score: " + score);
 				trainingTimer.stop();
 
 				// Check if better than previous best
@@ -164,20 +173,20 @@ public class MetaMLPlan extends AbstractClassifier {
 				// whole training data
 				if ((timeoutInMilliseconds - safety) <= (totalTimer.getTime() + bestModelExpectedTrainingTime)) {
 					System.out.println(
-							"Stopping search to train best model on whole training data which is expected to take "
+							"MetaMLPlan: Stopping search to train best model on whole training data which is expected to take "
 									+ bestModelExpectedTrainingTime + " ms.");
 					break;
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
-
-			System.out.println("Evaluating best model with validation score " + bestScore + " on whole training data ("
-					+ bestModel + ")");
-			bestModel.buildClassifier(data);
 		}
 
-		System.out.println("Meta MLPlan ready. Best solution: " + bestModel);
+		System.out.println("MetaMLPlan: Evaluating best model with validation score " + bestScore
+				+ " on whole training data (" + bestModel + ")");
+		bestModel.buildClassifier(data);
+
+		System.out.println("MetaMLPlan: Ready. Best solution: " + bestModel);
 	}
 
 	@Override
@@ -185,8 +194,8 @@ public class MetaMLPlan extends AbstractClassifier {
 		return bestModel.classifyInstance(instance);
 	}
 
-	public void setTimeOutInMilliSeconds(int seconds) {
-		this.timeoutInMilliseconds = seconds * 1000;
+	public void setTimeOutInMilliSeconds(int milliSeconds) {
+		this.timeoutInMilliseconds = milliSeconds;
 	}
 
 	public void setMetaFeatureSetName(String metaFeatureSetName) {
@@ -199,5 +208,9 @@ public class MetaMLPlan extends AbstractClassifier {
 
 	public void setCPUs(int cPUs) {
 		CPUs = cPUs;
+	}
+
+	public WEKAMetaminer getMetaMiner() {
+		return metaMiner;
 	}
 }

@@ -21,8 +21,9 @@ public interface IPipelineCharacterizer {
 	 * 
 	 * @param pipelines
 	 *            The pipelines to go through for patterns
+	 * @throws InterruptedException 
 	 */
-	public void build(List<ComponentInstance> pipelines);
+	public void build(List<ComponentInstance> pipelines) throws InterruptedException;
 
 	/**
 	 * Checks which of the found patterns (found during the training phase in

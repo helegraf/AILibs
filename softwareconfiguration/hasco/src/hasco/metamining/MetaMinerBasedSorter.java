@@ -18,7 +18,10 @@ import jaicore.planning.graphgenerators.task.tfd.TFDNode;
  */
 public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 
-	//TODO fix javadoc
+	/**
+	 * Components for the current configuration used to convert TFDNodes to
+	 * ComponentInstances
+	 */
 	private Collection<Component> components;
 
 	/**
@@ -39,13 +42,17 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 		double score1 = metaminer.score(convertToComponentInstance(o1));
 		double score2 = metaminer.score(convertToComponentInstance(o2));
 
-		//TODO remove / log properly
-		System.out.println("Comparing nodes: ");
-		System.out.println(o1 + " " + score1);
-		System.out.println(o2 + " " + score2);
+		System.out.println("Comparing nodes with scores: " + score1 + " vs " + score2);
 		return (int) Math.signum(score1 - score2);
 	}
 
+	/**
+	 * Converts the given TFDNode to a ComponentInstance.
+	 * 
+	 * @param node
+	 *            The TFDNode to convert
+	 * @return The TFDNode as a ComponentInstance
+	 */
 	protected ComponentInstance convertToComponentInstance(TFDNode node) {
 		return Util.getSolutionCompositionFromState(components, node.getState(), false);
 	}

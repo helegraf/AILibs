@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.openml.apiconnector.io.OpenmlConnector;
 import org.openml.apiconnector.xml.DataSetDescription;
 
@@ -36,12 +37,15 @@ public class MetaMinerExample {
 		System.out.println("Example: Configure ML-Plan");
 		MetaMLPlan metaMLPlan = new MetaMLPlan(data);
 		metaMLPlan.setCPUs(4);
-		metaMLPlan.setTimeOutInMilliSeconds(120000);
+		metaMLPlan.setTimeOutInMilliSeconds(60000);
 		metaMLPlan.setMetaFeatureSetName("all");
 		metaMLPlan.setDatasetSetName("metaminer_standard");
-		// Limit results to 5000 pipelines so that the conversion / downloading doesn't take too long
+		// Limit results to 20 pipelines so that the conversion / downloading doesn't take too long
 		System.out.println("Example: build meta components");
-		metaMLPlan.buildMetaComponents(args[0], args[1], args[2], 4);
+		StopWatch watch = new StopWatch();
+		watch.start();
+		metaMLPlan.buildMetaComponents(args[0], args[1], args[2], 20);
+		watch.stop();
 		System.out.println("Example: find solution");
 		metaMLPlan.buildClassifier(split.get(0));
 
@@ -50,6 +54,7 @@ public class MetaMinerExample {
 		Evaluation eval = new Evaluation(split.get(0));
 		eval.evaluateModel(metaMLPlan, split.get(1));
 		System.out.println("Error Rate of the solution produced by Meta ML-Plan: " + (100 - eval.pctCorrect()) / 100f);
+		System.out.println(watch.getTime());
 	}
 
 }

@@ -43,7 +43,7 @@ public class ComponentInstanceDatabaseGetter extends Thread {
 			pipelinePerformances = new ArrayList<HashMap<String, List<Double>>>(limit);
 
 			ResultSet resultSet = adapter.getResultsOfQuery(query);
-			System.out.println("Thread " + this.getId() + " got pipelines from data base.");
+			System.out.println("ComponentInstanceDatabaseGetter: Thread " + this.getId() + " got pipelines from data base.");
 
 			while (resultSet.next()) {
 				try {

@@ -62,6 +62,7 @@ public class ExperimentRepository {
 
 		int chunkSize = Math.floorDiv(distinctPipelineCount, CPUs);
 		int lastchunkSize = distinctPipelineCount - (chunkSize * (CPUs - 1));
+		System.err.println(chunkSize * (CPUs - 1) + lastchunkSize == distinctPipelineCount);
 
 		System.out.println("ExperimentRepository: Allocate Getter-Threads.");
 		ComponentInstanceDatabaseGetter[] threads = new ComponentInstanceDatabaseGetter[CPUs];
