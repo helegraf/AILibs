@@ -341,6 +341,6 @@ public class F3Optimizer implements IHeterogenousSimilarityMeasureComputer {
 
 	@Override
 	public double computeSimilarity(INDArray x, INDArray w) {
-		return 0;
+		return x.mmul(U).mmul(V.transpose()).mmul(w.transpose()).getDouble(0);
 	}
 }

@@ -4,12 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import org.aeonbits.owner.ConfigCache;
 import org.apache.commons.lang3.time.StopWatch;
+
+import com.google.common.eventbus.EventBus;
 
 import de.upb.crc901.mlplan.metamining.databaseconnection.ExperimentRepository;
 import de.upb.crc901.mlplan.multiclass.MLPlanClassifierConfig;
@@ -56,10 +59,14 @@ public class MetaMLPlan extends AbstractClassifier {
 	private int CPUs = 1;
 	private String metaFeatureSetName = "all";
 	private String datasetSetName = "all";
+	private int seed = 0;
 
 	// Search results
 	private Classifier bestModel;
 	private Collection<Component> components;
+
+	// For intermediate results
+	private EventBus eventBus = new EventBus();
 
 	public MetaMLPlan(Instances data) throws IOException {
 		this(new File("conf/automl/searchmodels/weka/weka-all-autoweka.json"), data);
@@ -75,7 +82,7 @@ public class MetaMLPlan extends AbstractClassifier {
 			}
 		};
 		mlPlan.setData(data);
-		
+
 		// Set search components except lds
 		this.components = mlPlan.getComponents();
 		this.metaMiner = new WEKAMetaminer(mlPlan.getComponentParamRefinements());
@@ -129,7 +136,7 @@ public class MetaMLPlan extends AbstractClassifier {
 		// Preparing the split for validating pipelines
 		System.out.println("MetaMLPlan: Preparing validation split");
 		MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(
-				new MulticlassEvaluator(new Random(0)), 3, data, .7f);
+				new MulticlassEvaluator(new Random(seed)), 5, data, .7f);
 
 		// Search for solutions
 		System.out.println("MetaMLPlan: Searching for solutions");
@@ -140,7 +147,14 @@ public class MetaMLPlan extends AbstractClassifier {
 
 		while (!lds.isCanceled()) {
 			try {
-				SearchGraphPath<TFDNode, String> searchGraphPath = lds.nextSolution();
+				SearchGraphPath<TFDNode, String> searchGraphPath;
+				try {
+				searchGraphPath = lds.nextSolution();
+				} catch (NoSuchElementException e) {
+					System.out.println("Finish search (Exhaustive search conducted).");
+					break;
+				}
+				
 				List<TFDNode> solution = searchGraphPath.getNodes();
 
 				if (solution == null) {
@@ -161,12 +175,14 @@ public class MetaMLPlan extends AbstractClassifier {
 				System.out.println("MetaMLPlan: Pipeline Score: " + score);
 				trainingTimer.stop();
 
+				eventBus.post(new IntermediateSolutionEvent(pl, score, System.currentTimeMillis()));
+
 				// Check if better than previous best
 				System.out.println(score + " " + pl);
 				if (score < bestScore) {
 					bestModel = pl;
 					bestScore = score;
-					bestModelExpectedTrainingTime = trainingTimer.getTime() / 2;
+					bestModelExpectedTrainingTime = trainingTimer.getTime() * 2;
 				}
 
 				// Check if enough time remaining to re-train the current best model on the
@@ -181,10 +197,41 @@ public class MetaMLPlan extends AbstractClassifier {
 				e.printStackTrace();
 			}
 		}
+		
 
-		System.out.println("MetaMLPlan: Evaluating best model with validation score " + bestScore
-				+ " on whole training data (" + bestModel + ")");
-		bestModel.buildClassifier(data);
+		
+		Thread finalEval = new Thread() {
+			
+			@Override
+			public void run() {
+				System.out.println("MetaMLPlan: Evaluating best model on whole training data (" + bestModel + ")");
+				try {
+					bestModel.buildClassifier(data);
+				} catch (Exception e) {
+					bestModel = null;
+					System.out.println("Evaluation of best model failed with exception.");
+					e.printStackTrace();
+				}			
+			}
+		};
+		
+		TimerTask newT = new TimerTask() {
+			@Override
+			public void run() {
+				System.out.println("MetaMLPlan: Interrupt building of final classifier because time is running out.");
+				finalEval.interrupt();
+			}
+		};
+		
+		// Start timer that interrupts the final training
+		try {
+		new Timer().schedule(newT, (long) (timeoutInMilliseconds - safety - totalTimer.getTime()));	
+		} catch (IllegalArgumentException e) {
+			System.out.println("No time anymore to start evaluation of final model. Abort search.");
+			return;
+		}
+		finalEval.start();
+		finalEval.join();
 
 		System.out.println("MetaMLPlan: Ready. Best solution: " + bestModel);
 	}
@@ -192,6 +239,10 @@ public class MetaMLPlan extends AbstractClassifier {
 	@Override
 	public double classifyInstance(final Instance instance) throws Exception {
 		return bestModel.classifyInstance(instance);
+	}
+
+	public void registerListenerForIntermediateSolutions(Object listener) {
+		eventBus.register(listener);
 	}
 
 	public void setTimeOutInMilliSeconds(int milliSeconds) {
@@ -212,5 +263,9 @@ public class MetaMLPlan extends AbstractClassifier {
 
 	public WEKAMetaminer getMetaMiner() {
 		return metaMiner;
+	}
+
+	public void setSeed(int seed) {
+		this.seed = seed;
 	}
 }

@@ -8,6 +8,7 @@ public class MLPlanWekaBuilder {
 	private File searchSpaceConfigFile = new File("conf/automl/searchmodels/weka/weka-all-autoweka.json");
 	private File alhorithmConfigFile = new File("conf/mlplan.properties");
 	private MultiClassPerformanceMeasure performanceMeasure = MultiClassPerformanceMeasure.ERRORRATE;
+	private int seed = 0;
 
 	public MLPlanWekaBuilder() { }
 	
@@ -43,5 +44,13 @@ public class MLPlanWekaBuilder {
 	public MLPlanWekaBuilder withPerformanceMeasure(MultiClassPerformanceMeasure performanceMeasure) {
 		this.performanceMeasure = performanceMeasure;
 		return this;
+	}
+
+	public int getSeed() {
+		return seed;
+	}
+
+	public void setSeed(int seed) {
+		this.seed = seed;
 	}
 }

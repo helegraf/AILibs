@@ -33,12 +33,26 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 	private IMetaMiner metaminer;
 
 	public MetaMinerBasedSorter(IMetaMiner metaminer, Collection<Component> components) {
+		if (components==null) {
+			System.err.println("No Components in sorter!");
+		}
 		this.components = components;
 		this.metaminer = metaminer;
 	}
 
 	@Override
 	public int compare(TFDNode o1, TFDNode o2) {
+		if (o1.equals(o2) || o1 == o2) {
+			System.err.println("Equal nodes");
+		}
+		if (o1 == null || o2 == null) {
+			System.err.println("Null TFDNode!");
+		}
+		if (convertToComponentInstance(o1) == null || convertToComponentInstance(o2) == null) {
+			System.err.println("Null conversions for ");
+			System.err.println(o1);
+			System.err.println(o2);
+		}
 		double score1 = metaminer.score(convertToComponentInstance(o1));
 		double score2 = metaminer.score(convertToComponentInstance(o2));
 

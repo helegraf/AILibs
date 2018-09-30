@@ -91,7 +91,8 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 
 		for (int i = 0; i < threads.length; i++) {
 			threads[i] = new ComponentInstanceStringConverter(ontologyConnector,
-					pipelines.subList(i * chunkSize, i == threads.length - 1 ? (i*chunkSize) + lastchunkSize : (i+1) * chunkSize),
+					pipelines.subList(i * chunkSize,
+							i == threads.length - 1 ? (i * chunkSize) + lastchunkSize : (i + 1) * chunkSize),
 					componentParameters);
 			threads[i].start();
 		}
@@ -105,12 +106,19 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 		// Use the tree miner to find patterns
 		System.out.println("WEKAPipelineCharacterizer: Find frequent subtrees.");
 		foundPipelinePatterns = treeMiner.findFrequentSubtrees(pipelineRepresentations, patternMinSupport);
+		System.err.println("Patterns: ---------------------------------------------------");
+		for (String pattern : foundPipelinePatterns) {
+			System.out.println(pattern);
+		}
 	}
 
 	@Override
 	public double[] characterize(ComponentInstance pipeline) {
 		// Make tree representation from this pipeline
-		String treeRepresentation = new ComponentInstanceStringConverter(ontologyConnector, new ArrayList<>(), componentParameters).makeStringTreeRepresentation(pipeline);
+		String treeRepresentation = new ComponentInstanceStringConverter(ontologyConnector, new ArrayList<>(),
+				componentParameters).makeStringTreeRepresentation(pipeline);
+		System.out.println("Characterize pipeline");
+		System.out.println(treeRepresentation);
 
 		// Ask the treeMiner which of the patterns are included in this pipeline
 		double[] pipelineCharacterization = new double[foundPipelinePatterns.size()];
@@ -121,6 +129,11 @@ public class WEKAPipelineCharacterizer implements IPipelineCharacterizer {
 				pipelineCharacterization[i] = 0;
 			}
 		}
+		System.out.println("Patterns in pipelines");
+		for (int i = 0; i < pipelineCharacterization.length; i++) {
+			System.out.print(pipelineCharacterization[i] +", ");
+		}
+		System.out.println();
 
 		return pipelineCharacterization;
 	}

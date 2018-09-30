@@ -31,7 +31,7 @@ public class WekaMLPlanWekaClassifier extends MLPlanWekaClassifier {
 	}
 
 	public WekaMLPlanWekaClassifier(MLPlanWekaBuilder builder) throws IOException {
-		super(builder.getSearchSpaceConfigFile(), new WEKAPipelineFactory(), new LossFunctionBuilder().getEvaluator(builder.getPerformanceMeasure()), builder.getAlhorithmConfigFile() != null ? loadOwnerConfig(builder.getAlhorithmConfigFile()) : ConfigFactory.create(MLPlanClassifierConfig.class));
+		super(builder.getSearchSpaceConfigFile(), new WEKAPipelineFactory(), new LossFunctionBuilder().getEvaluator(builder.getPerformanceMeasure(),0), builder.getAlhorithmConfigFile() != null ? loadOwnerConfig(builder.getAlhorithmConfigFile()) : ConfigFactory.create(MLPlanClassifierConfig.class));
 		PreferenceBasedNodeEvaluator preferenceNodeEvaluator = new PreferenceBasedNodeEvaluator(new ComponentLoader(getComponentFile()).getComponents(), FileUtil.readFileAsList(getConfig().preferredComponents()));
 		this.setPreferredNodeEvaluator(preferenceNodeEvaluator);
 	}

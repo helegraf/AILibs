@@ -43,7 +43,6 @@ public class ComponentInstanceStringConverter extends Thread {
 		for (ComponentInstance cI : cIs) {
 			String pipeline = makeStringTreeRepresentation(cI);
 			convertedPipelines.add(pipeline);
-			System.out.println(pipeline);
 		}
 	}
 	

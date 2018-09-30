@@ -51,12 +51,12 @@ public class ExperimentRepository {
 		System.out.println("ExperimentRepository: Get distinct pipelines.");
 		// TODO also adapt query here to change of including hyperparameters of
 		// preprocessors (STATEMENT BELOW DOESN'T HAVE ACTUAL COLUMN NAMES
-		String query = "SELECT COUNT(DISTINCT pipeline) FROM evaluations";
+		String query = "SELECT (COUNT(DISTINCT searcher, evaluator, classifier)) FROM basePipelineEvals";
 		// String query = "SELECT COUNT(DISTINCT pipeline, searcherParameter,
 		// evaluatorParameter) FROM evaluations";
 		ResultSet resultSet = adapter.getResultsOfQuery(query);
 		resultSet.next();
-		int distinctPipelineCount = resultSet.getInt("COUNT(DISTINCT pipeline)");
+		int distinctPipelineCount = resultSet.getInt("(COUNT(DISTINCT searcher, evaluator, classifier))");
 		distinctPipelineCount = limit == null ? distinctPipelineCount : limit;
 		System.out.println(distinctPipelineCount + " distinct pipelines will be downloaded.");
 
@@ -71,7 +71,7 @@ public class ExperimentRepository {
 			threads[i] = new ComponentInstanceDatabaseGetter();
 			threads[i].setAdapter(adapter);
 			threads[i].setOffset(i * chunkSize);
-			threads[i].setLimit(i == threads.length - 1 ? chunkSize : lastchunkSize);
+			threads[i].setLimit(i == (threads.length - 1) ? lastchunkSize : chunkSize);
 			threads[i].setFactory(factory);
 			threads[i].start();
 		}
@@ -98,8 +98,8 @@ public class ExperimentRepository {
 		System.out.println("ExperimentRepository: Downloading dataset characterizations.");
 		Instances metaData = metaDataBaseConnection.getMetaDataSetForDataSetSet(datasetSetName, metaFeatureSetName);
 		//TODO remove this!!!!
-		metaData.add(new DenseInstance(metaData.numAttributes()));
-		metaData.add(new DenseInstance(metaData.numAttributes()));
+		//metaData.add(new DenseInstance(metaData.numAttributes()));
+		//metaData.add(new DenseInstance(metaData.numAttributes()));
 		metaData.deleteAttributeAt(0);
 		return metaData;
 	}
@@ -115,51 +115,32 @@ public class ExperimentRepository {
 	 */
 	public double[][][] getPipelineResultsOnDatasets() throws SQLException {
 		System.out.println("ExperimentRepository: Get inidividual pipeline results.");
-		connect();
 
 		// Get order of datasets
-		List<String> datasets = metaDataBaseConnection.getMembersOfMetadataSet(metaFeatureSetName);
+		System.out.println(datasetSetName);
+		List<String> datasets = metaDataBaseConnection.getMembersOfDatasetSet(datasetSetName);
 
-		// Map hgraf datasets to mlplan_results datasets
-		HashMap<String, String> datasetNameToIndexMap = new HashMap<>();
-
-		String query = "SELECT isys_id, cluster_location_old, openML_dataset_id FROM `pgotfml_hgraf`.`dataset_id_mapping`";
-		ResultSet resultSet = adapter.getResultsOfQuery(query);
-
-		while (resultSet.next()) {
-			if (resultSet.getObject("openML_dataset_id") != null) {
-				// dataset has openML equivalence
-				datasetNameToIndexMap.put(resultSet.getInt("openML_dataset_id") + ":openML_dataset_id",
-						resultSet.getString("cluster_location_old"));
-			} else {
-				// dataset does not have openML equivalence
-				// TODO the : should come from a centralized place / merging from central place
-				datasetNameToIndexMap.put(resultSet.getInt("isys_id") + ":isys_id",
-						resultSet.getString("cluster_location_old"));
-			}
-		}
+		System.out.println(datasets);
 
 		// Organize results into matrix
-		double[][][] results = new double[datasetNameToIndexMap.size()][pipelinePerformances.size()][];
+		double[][][] results = new double[datasets.size()][pipelinePerformances.size()][];
 
 		for (int j = 0; j < datasets.size(); j++) {
 			String dataset = datasets.get(j);
 			for (int i = 0; i < pipelinePerformances.size(); i++) {
 				// Does the pipeline have a result for the dataset
-				List<Double> datasetResults = pipelinePerformances.get(i).get(datasetNameToIndexMap.get(dataset));
+				List<Double> datasetResults = pipelinePerformances.get(i).get(dataset);
 				if (datasetResults != null && datasetResults.size() > 0) {
 					results[j][i] = datasetResults.stream().mapToDouble(value -> value).toArray();
 				}
 			}
 		}
 
-		disconnect();
-
 		return results;
 	}
 
 	private void connect() {
-		adapter = new SQLAdapter(host, user, password, "mlplan_results");
+		adapter = new SQLAdapter(host, user, password, "pgotfml_hgraf");
 	}
 
 	private void disconnect() {

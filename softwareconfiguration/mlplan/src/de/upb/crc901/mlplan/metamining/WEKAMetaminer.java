@@ -69,10 +69,10 @@ public class WEKAMetaminer implements IMetaMiner {
 		dataSetMetaFeaturesAttributes = metaFeatureInformation.enumerateAttributes();		
 
 		// Convert to matrix (Matrix X with rows representing data sets)
-		INDArray datasetsMetafeatures = Nd4j.create(metaFeatureInformation.size() - 1,
+		INDArray datasetsMetafeatures = Nd4j.create(metaFeatureInformation.size(),
 				metaFeatureInformation.numAttributes());
-		for (int i = 1; i < metaFeatureInformation.size(); i++) {
-			datasetsMetafeatures.putRow(i - 1, Nd4j.create(metaFeatureInformation.get(i).toDoubleArray()));
+		for (int i = 0; i < metaFeatureInformation.size(); i++) {
+			datasetsMetafeatures.putRow(i, Nd4j.create(metaFeatureInformation.get(i).toDoubleArray()));
 		}
 		System.out.println("WEKAMetaminer: dataset metafeatures: " + datasetsMetafeatures.rows() + " x " + datasetsMetafeatures.columns());
 
@@ -82,6 +82,7 @@ public class WEKAMetaminer implements IMetaMiner {
 		System.out.println("WEKAMetaminer: Computing relative performance Matrix.");
 		INDArray rankMatrix = similarityComputer.computeRelativeRankMatrix(performanceValues);
 		System.out.println("WEKAMetaminer: rank matrix: " + rankMatrix.rows() + " x " + rankMatrix.columns());
+		System.out.println(rankMatrix);
 
 		// Initialize PipelineCharacterizer with list of distinct pipelines
 		System.out.println("WEKAMetaminer: Initializing pipeline characterizer.");

@@ -7,9 +7,13 @@ import java.util.List;
 
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.MLPipelineComponentInstanceFactory;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.model.MLPipeline;
+import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.model.SupervisedFilterSelector;
 import hasco.model.ComponentInstance;
 import hasco.serialization.ComponentNotFoundException;
 import jaicore.basic.SQLAdapter;
+import weka.attributeSelection.ASEvaluation;
+import weka.attributeSelection.ASSearch;
+import weka.classifiers.AbstractClassifier;
 
 /**
  * A worker that gets a range of rows from a database with entries containing
@@ -34,8 +38,16 @@ public class ComponentInstanceDatabaseGetter extends Thread {
 
 	@Override
 	public void run() {
-		//TODO adapt this query so that it includes the parameters of preprocessors
-		String query = "SELECT pipeline, GROUP_CONCAT( CONCAT (dataset, ',', errorRate) SEPARATOR ';') AS results FROM (SELECT pipeline, errorRate, run_id FROM evaluations) AS A INNER JOIN (SELECT run_id, dataset FROM runs WHERE dataset NOT LIKE \"testrsc/all/autoUnivau6750.arff\") AS B ON A.run_id = B.run_id WHERE pipeline NOT LIKE '%jaicore.ml.classification.multiclass.reduction.MCTreeNodeReD%' GROUP BY pipeline ORDER BY pipeline LIMIT "
+		// TODO adapt this query so that it includes the parameters of preprocessors
+		// String query = "SELECT pipeline, GROUP_CONCAT( CONCAT (dataset, ',',
+		// errorRate) SEPARATOR ';') AS results FROM (SELECT pipeline, errorRate, run_id
+		// FROM evaluations) AS A INNER JOIN (SELECT run_id, dataset FROM runs WHERE
+		// dataset NOT LIKE \"testrsc/all/autoUnivau6750.arff\") AS B ON A.run_id =
+		// B.run_id WHERE pipeline NOT LIKE
+		// '%jaicore.ml.classification.multiclass.reduction.MCTreeNodeReD%' GROUP BY
+		// pipeline ORDER BY pipeline LIMIT "
+		/// + limit + " OFFSET " + offset;
+		String query = "SELECT searcher, evaluator, classifier, GROUP_CONCAT( CONCAT (dataset_id, ':', dataset_origin, ',', error_rate) SEPARATOR ';') AS results FROM basePipelineEvals GROUP BY searcher, evaluator, classifier ORDER BY searcher, evaluator, classifier LIMIT "
 				+ limit + " OFFSET " + offset;
 
 		try {
@@ -43,13 +55,23 @@ public class ComponentInstanceDatabaseGetter extends Thread {
 			pipelinePerformances = new ArrayList<HashMap<String, List<Double>>>(limit);
 
 			ResultSet resultSet = adapter.getResultsOfQuery(query);
-			System.out.println("ComponentInstanceDatabaseGetter: Thread " + this.getId() + " got pipelines from data base.");
+			System.out.println(
+					"ComponentInstanceDatabaseGetter: Thread " + this.getId() + " got pipelines from data base.");
 
 			while (resultSet.next()) {
 				try {
 					// Get pipeline
-					ComponentInstance CI = factory
-							.convertToComponentInstance(new MLPipeline(resultSet.getString("pipeline")));
+					ComponentInstance CI;
+					if (resultSet.getString("searcher") != null && resultSet.getString("evaluator") != null) {
+						CI = factory.convertToComponentInstance(
+								new MLPipeline(ASSearch.forName(resultSet.getString("searcher"), null),
+										ASEvaluation.forName(resultSet.getString("evaluator"), null),
+										AbstractClassifier.forName(resultSet.getString("classifier"), null)));
+					} else {
+						CI = factory
+								.convertToComponentInstance(new MLPipeline(new ArrayList<SupervisedFilterSelector>(),
+										AbstractClassifier.forName(resultSet.getString("classifier"), null)));
+					}
 
 					// Get pipeline performance values (errorRate,dataset array)
 					String[] results = resultSet.getString("results").split(";");
