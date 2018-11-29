@@ -18,7 +18,6 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
 import de.upb.crc901.mlplan.multiclass.MLPlanClassifierConfig;
-import de.upb.crc901.mlplan.multiclass.MultiClassPerformanceMeasure;
 import hasco.core.HASCOSolutionCandidate;
 import hasco.model.Component;
 import hasco.model.ComponentInstance;
@@ -33,6 +32,7 @@ import hasco.variants.forwarddecomposition.twophase.TwoPhaseSoftwareConfiguratio
 import jaicore.basic.ILoggingCustomizable;
 import jaicore.basic.IObjectEvaluator;
 import jaicore.basic.MathExt;
+import jaicore.basic.TimeOut;
 import jaicore.basic.algorithm.AlgorithmEvent;
 import jaicore.basic.algorithm.AlgorithmFinishedEvent;
 import jaicore.basic.algorithm.AlgorithmInitializedEvent;
@@ -40,8 +40,9 @@ import jaicore.basic.algorithm.AlgorithmState;
 import jaicore.basic.algorithm.IAlgorithm;
 import jaicore.basic.algorithm.SolutionCandidateFoundEvent;
 import jaicore.ml.WekaUtil;
-import jaicore.ml.evaluation.BasicMLEvaluator;
-import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
+import jaicore.ml.core.evaluation.measure.ADecomposableDoubleMeasure;
+import jaicore.ml.core.evaluation.measure.singlelabel.MultiClassPerformanceMeasure;
+import jaicore.ml.evaluation.evaluators.weka.MonteCarloCrossValidationEvaluator;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.AlternativeNodeEvaluator;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.INodeEvaluator;
@@ -74,25 +75,25 @@ public abstract class MLPlanWekaClassifier implements Classifier, CapabilitiesHa
 	private final Map<Component, Map<Parameter, ParameterRefinementConfiguration>> componentParamRefinements;
 	private final ClassifierFactory factory;
 	private INodeEvaluator<TFDNode, Double> preferredNodeEvaluator;
-	private final BasicMLEvaluator benchmark;
+	private final ADecomposableDoubleMeasure<Double> performanceMeasure;
 	private final MLPlanClassifierConfig config;
 	private Classifier selectedClassifier;
 	private double internalValidationErrorOfSelectedClassifier;
 	private final EventBus eventBus = new EventBus();
 	private TwoPhaseHASCOFactory hascoFactory;
-	private OptimizingFactory<TwoPhaseSoftwareConfigurationProblem, Classifier, Double> optimizingFactory;
+	private OptimizingFactory<TwoPhaseSoftwareConfigurationProblem, Classifier, HASCOSolutionCandidate<Double>, Double> optimizingFactory;
 
 	private AlgorithmState state = AlgorithmState.created;
 	private Instances dataShownToSearch = null;
 	private Instances data = null;
 
-	public MLPlanWekaClassifier(final File componentFile, final ClassifierFactory factory, final BasicMLEvaluator benchmark, final MLPlanClassifierConfig config) throws IOException {
+	public MLPlanWekaClassifier(final File componentFile, final ClassifierFactory factory, final ADecomposableDoubleMeasure<Double> performanceMeasure, final MLPlanClassifierConfig config) throws IOException {
 		this.componentFile = componentFile;
 		ComponentLoader loader = new ComponentLoader(componentFile);
 		this.components = loader.getComponents();
 		this.componentParamRefinements = loader.getParamConfigs();
 		this.factory = factory;
-		this.benchmark = benchmark;
+		this.performanceMeasure = performanceMeasure;
 		this.config = config;
 	}
 
@@ -152,8 +153,8 @@ public abstract class MLPlanWekaClassifier implements Classifier, CapabilitiesHa
 			this.logger.info("Using the following preferred node evaluator: {}", this.preferredNodeEvaluator);
 
 			/* create HASCO problem */
-			IObjectEvaluator<Classifier, Double> searchBenchmark = new MonteCarloCrossValidationEvaluator(this.benchmark, this.config.numberOfMCIterationsDuringSearch(), this.dataShownToSearch,
-					this.config.getMCCVTrainFoldSizeDuringSearch());
+			IObjectEvaluator<Classifier, Double> searchBenchmark = new MonteCarloCrossValidationEvaluator(this.performanceMeasure, this.config.numberOfMCIterationsDuringSearch(), this.dataShownToSearch,
+					this.config.getMCCVTrainFoldSizeDuringSearch(), this.config.randomSeed());
 			IObjectEvaluator<ComponentInstance, Double> wrappedSearchBenchmark = c -> searchBenchmark.evaluate(this.factory.getComponentInstantiation(c));
 			IObjectEvaluator<Classifier, Double> selectionBenchmark = new IObjectEvaluator<Classifier, Double>() {
 
@@ -161,8 +162,8 @@ public abstract class MLPlanWekaClassifier implements Classifier, CapabilitiesHa
 				public Double evaluate(final Classifier object) throws Exception {
 
 					/* first conduct MCCV */
-					MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(MLPlanWekaClassifier.this.benchmark, MLPlanWekaClassifier.this.config.numberOfMCIterationsDuringSelection(),
-							MLPlanWekaClassifier.this.data, MLPlanWekaClassifier.this.config.getMCCVTrainFoldSizeDuringSelection());
+					MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(MLPlanWekaClassifier.this.performanceMeasure, MLPlanWekaClassifier.this.config.numberOfMCIterationsDuringSelection(),
+							MLPlanWekaClassifier.this.data, MLPlanWekaClassifier.this.config.getMCCVTrainFoldSizeDuringSelection(), config.randomSeed());
 					mccv.evaluate(object);
 
 					/* now retrieve .75-percentile from stats */
@@ -228,25 +229,21 @@ public abstract class MLPlanWekaClassifier implements Classifier, CapabilitiesHa
 
 	@Override
 	public int getNumCPUs() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
 	public void setTimeout(final int timeout, final TimeUnit timeUnit) {
-		// TODO Auto-generated method stub
+
+	}
+	
+	@Override
+	public void setTimeout(final TimeOut timeout) {
 
 	}
 
 	@Override
-	public int getTimeout() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public TimeUnit getTimeoutUnit() {
-		// TODO Auto-generated method stub
+	public TimeOut getTimeout() {
 		return null;
 	}
 
@@ -257,7 +254,7 @@ public abstract class MLPlanWekaClassifier implements Classifier, CapabilitiesHa
 
 	@Override
 	public void cancel() {
-		// TODO Auto-generated method stub
+		
 	}
 
 	protected abstract INodeEvaluator<TFDNode, Double> getSemanticNodeEvaluator(Instances data);

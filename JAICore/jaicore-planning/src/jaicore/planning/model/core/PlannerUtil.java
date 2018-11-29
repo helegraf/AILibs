@@ -2,17 +2,23 @@ package jaicore.planning.model.core;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jaicore.basic.sets.SetUtil;
 import jaicore.logic.fol.structure.CNFFormula;
 import jaicore.logic.fol.structure.Clause;
 import jaicore.logic.fol.structure.ConstantParam;
 import jaicore.logic.fol.structure.Literal;
+import jaicore.logic.fol.structure.LiteralParam;
 import jaicore.logic.fol.structure.Monom;
 import jaicore.logic.fol.structure.VariableParam;
+import jaicore.logic.fol.util.LogicUtil;
 import jaicore.planning.model.conditional.CEAction;
 import jaicore.planning.model.conditional.CEOperation;
 import jaicore.planning.model.strips.StripsAction;
@@ -20,40 +26,44 @@ import jaicore.planning.model.strips.StripsOperation;
 import jaicore.planning.model.strips.StripsPlanningDomain;
 
 public class PlannerUtil {
-	
+
+	private static final Logger logger = LoggerFactory.getLogger(PlannerUtil.class);
+
 	public static Collection<StripsAction> getApplicableActionsInState(Monom state, StripsPlanningDomain domain) {
 		Collection<StripsAction> applicableDerivedActions = new ArrayList<>();
 		for (Operation op : domain.getOperations()) {
-			applicableDerivedActions.addAll(getPossibleOperationGroundingsForState(state, (StripsOperation)op));
+			applicableDerivedActions.addAll(getPossibleOperationGroundingsForState(state, (StripsOperation) op));
 		}
 		return applicableDerivedActions;
 	}
-	
-	public static Collection<StripsAction> getPossibleOperationGroundingsForState(Monom state, StripsOperation operation) {
+
+	public static Collection<StripsAction> getPossibleOperationGroundingsForState(Monom state,
+			StripsOperation operation) {
 		Collection<StripsAction> applicableDerivedActions = new ArrayList<>();
-		
-		/* implement groundings here */
-		try {
-			for (Map<VariableParam,ConstantParam> grounding: SetUtil.allTotalMappings(operation.getParams(), state.getConstantParams())) {
-				Monom precondition = new Monom(operation.getPrecondition(), grounding);
-				List<Literal> positiveLiterals = precondition.stream().filter(l -> l.isPositive()).collect(Collectors.toList());
-				List<Literal> negativeLiterals = precondition.stream().filter(l -> l.isNegated()).map(l -> l.clone().toggleNegation()).collect(Collectors.toList());
-				if (state.containsAll(positiveLiterals) && SetUtil.intersection(state, negativeLiterals).isEmpty())
-					applicableDerivedActions.add(new StripsAction(operation, grounding));
+
+		/* decompose premise in positive and negative literals */
+		Collection<Map<VariableParam, LiteralParam>> groundings = LogicUtil
+				.getSubstitutionsThatEnableForwardChainingUnderCWA(state, operation.getPrecondition());
+		logger.info("Computed {} groundings that yield valid deductions of premise {} in state {}", groundings.size(),
+				operation.getPrecondition(), state);
+
+		for (Map<VariableParam, LiteralParam> grounding : groundings) {
+			/* refactor grounding to constants only and add the respective action */
+			Map<VariableParam, ConstantParam> rGrounding = new HashMap<>();
+			for (VariableParam p : grounding.keySet()) {
+				ConstantParam cp = (ConstantParam) grounding.get(p);
+				rGrounding.put(p, cp);
 			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+			StripsAction a = new StripsAction(operation, rGrounding);
+			applicableDerivedActions.add(a);
+			logger.debug("Found action {} to be applicable.", a.getEncoding());
+
 		}
-		
 		return applicableDerivedActions;
 	}
-	
 
 	public static void updateState(Monom state, Action appliedAction) {
 
-		// assert state.containsAll(appliedAction.getPrecondition().stream().filter(lit -> lit.isPositive()).collect(Collectors.toList())) && SetUtil.disjoint(state,
-		// appliedAction.getPrecondition().stream().filter(lit -> lit.isNegated()).collect(Collectors.toList())) : ("Action " + appliedAction + " is supposed to be aplpicable in state " + state + "
-		// but it is not!");
 		/* apply effects of action (STRIPS) */
 		if (appliedAction.getOperation() instanceof StripsOperation) {
 			Action a = new StripsAction((StripsOperation) appliedAction.getOperation(), appliedAction.getGrounding());
@@ -74,11 +84,11 @@ public class PlannerUtil {
 					toRemove.addAll(deleteLists.get(condition));
 				}
 			}
-			
+
 			/* determine literals to add */
 			Collection<Literal> toAdd = new ArrayList<>();
 			for (CNFFormula condition : addLists.keySet()) {
-				
+
 				/* evaluate interpreted predicates */
 				CNFFormula modifiedCondition = new CNFFormula();
 				boolean conditionIsSatisfiable = true;
@@ -87,7 +97,7 @@ public class PlannerUtil {
 					boolean clauseContainsTrue = false;
 					for (Literal l : c) {
 						modifiedClause.add(l);
-						
+
 						/* if the clause is not empty, add it to the condition */
 						if (!clauseContainsTrue) {
 							if (!modifiedClause.isEmpty())
@@ -103,14 +113,20 @@ public class PlannerUtil {
 					toAdd.addAll(addLists.get(condition));
 				}
 			}
-			
+
 			/* now conduct update */
 			state.removeAll(toRemove);
 			state.addAll(toAdd);
-			
+
 		} else {
 			System.err.println("No support for operations of class " + appliedAction.getOperation().getClass());
 		}
+	}
+	
+	public static Monom getStateAfterPlanExecution(Monom initState, Plan<?> plan) {
+		Monom state = new Monom(initState);
+		plan.getActions().forEach(a -> updateState(state, a));
+		return state;
 	}
 
 	public static void main(String[] args) {

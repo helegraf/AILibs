@@ -27,8 +27,9 @@ import hasco.model.ComponentInstance;
 import jaicore.graph.TreeNode;
 import jaicore.graphvisualizer.TooltipGenerator;
 import jaicore.graphvisualizer.gui.VisualizationWindow;
-import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
-import jaicore.ml.evaluation.MulticlassEvaluator;
+import jaicore.ml.core.evaluation.measure.EventEmittingMeasure;
+import jaicore.ml.core.evaluation.measure.IMeasure;
+import jaicore.ml.core.evaluation.measure.singlelabel.ZeroOneLoss;
 import jaicore.ml.metafeatures.GlobalCharacterizer;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
 import jaicore.planning.graphgenerators.task.tfd.TFDTooltipGenerator;
@@ -152,8 +153,8 @@ public class MetaMLPlan extends AbstractClassifier {
 
 		// Preparing the split for validating pipelines
 		System.out.println("MetaMLPlan: Preparing validation split");
-		MonteCarloCrossValidationEvaluator mccv = new MonteCarloCrossValidationEvaluator(
-				new MulticlassEvaluator(new Random(seed)), 5, data, .7f);
+		jaicore.ml.evaluation.evaluators.weka.MonteCarloCrossValidationEvaluator mccv = new jaicore.ml.evaluation.evaluators.weka.MonteCarloCrossValidationEvaluator(
+				new ZeroOneLoss(),  5, data, .7f, seed);
 
 		// Search for solutions
 		System.out.println("MetaMLPlan: Searching for solutions");
