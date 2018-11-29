@@ -37,7 +37,7 @@ public class MetaMinerExample {
 		System.out.println("Example: Configure ML-Plan");
 		MetaMLPlan metaMLPlan = new MetaMLPlan(data);
 		metaMLPlan.setCPUs(4);
-		metaMLPlan.setTimeOutInMilliSeconds(60000);
+		metaMLPlan.setTimeOutInSeconds(60000);
 		metaMLPlan.setMetaFeatureSetName("all");
 		metaMLPlan.setDatasetSetName("metaminer_standard");
 		// Limit results to 20 pipelines so that the conversion / downloading doesn't take too long

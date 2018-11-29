@@ -1,7 +1,13 @@
 package hasco.metamining;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 
 import hasco.core.Util;
 import hasco.model.Component;
@@ -42,20 +48,22 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 
 	@Override
 	public int compare(TFDNode o1, TFDNode o2) {
-		if (o1.equals(o2) || o1 == o2) {
-			System.err.println("Equal nodes");
-		}
-		if (o1 == null || o2 == null) {
-			System.err.println("Null TFDNode!");
-		}
 		if (convertToComponentInstance(o1) == null || convertToComponentInstance(o2) == null) {
-			System.err.println("Null conversions for ");
-			System.err.println(o1);
-			System.err.println(o2);
+			System.err.println("Cannot compare pipelines when one is null.");
+			return 0;
 		}
+		if (o1.equals(o2)) {
+			System.err.println("Comparing two nodes which are the same.");
+			return 0;
+		}
+		
 		double score1 = metaminer.score(convertToComponentInstance(o1));
 		double score2 = metaminer.score(convertToComponentInstance(o2));
-
+		
+		System.out.println("Node " + o1);
+		System.out.println("Converted to " + convertToComponentInstance(o1).getPrettyPrint());
+		System.out.println("Node " + o2);
+		System.out.println("Converted to " + convertToComponentInstance(o2).getPrettyPrint());
 		System.out.println("Comparing nodes with scores: " + score1 + " vs " + score2);
 		return (int) Math.signum(score1 - score2);
 	}
@@ -90,5 +98,17 @@ public class MetaMinerBasedSorter implements Comparator<TFDNode> {
 	 */
 	public void setMetaminer(IMetaMiner metaminer) {
 		this.metaminer = metaminer;
+	}
+	
+	public static void main (String [] args) {
+		List<Integer> list = Arrays.asList(3,5,4,7,1,2,6,8,9);
+		System.out.println(list.stream().sorted(new Comparator<Integer>() {
+			
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				System.out.println("Comparing " + o1 + " vs " + o2);
+				return (int) Math.signum(o1-o2);
+			}
+		}).collect(Collectors.toList()));
 	}
 }

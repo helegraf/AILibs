@@ -24,18 +24,25 @@ import hasco.core.Util;
 import hasco.metamining.MetaMinerBasedSorter;
 import hasco.model.Component;
 import hasco.model.ComponentInstance;
+import jaicore.graph.TreeNode;
+import jaicore.graphvisualizer.TooltipGenerator;
+import jaicore.graphvisualizer.gui.VisualizationWindow;
 import jaicore.ml.evaluation.MonteCarloCrossValidationEvaluator;
 import jaicore.ml.evaluation.MulticlassEvaluator;
 import jaicore.ml.metafeatures.GlobalCharacterizer;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
+import jaicore.planning.graphgenerators.task.tfd.TFDTooltipGenerator;
 import jaicore.search.algorithms.standard.AbstractORGraphSearch;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.INodeEvaluator;
 import jaicore.search.algorithms.standard.lds.BestFirstLimitedDiscrepancySearchFactory;
+import jaicore.search.algorithms.standard.lds.LimitedDiscrepancySearchFactory;
 import jaicore.search.algorithms.standard.lds.NodeOrderList;
 import jaicore.search.model.other.EvaluatedSearchGraphPath;
 import jaicore.search.model.other.SearchGraphPath;
 import jaicore.search.model.probleminputs.NodeRecommendedTree;
 import jaicore.search.model.travesaltree.Node;
+import jaicore.search.model.travesaltree.NodeTooltipGenerator;
+import jaicore.search.structure.graphgenerator.ReducedGraphGenerator;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
@@ -54,8 +61,8 @@ public class MetaMLPlan extends AbstractClassifier {
 	WEKAPipelineFactory factory = new WEKAPipelineFactory();
 
 	// Search configuration
-	private long timeoutInMilliseconds = 60000;
-	private long safety = 1000;
+	private long timeoutInSeconds = 60;
+	private long safetyInSeconds = 1;
 	private int CPUs = 1;
 	private String metaFeatureSetName = "all";
 	private String datasetSetName = "all";
@@ -89,10 +96,20 @@ public class MetaMLPlan extends AbstractClassifier {
 
 		// Get lds
 		BestFirstLimitedDiscrepancySearchFactory<TFDNode, String, NodeOrderList> ldsFactory = new BestFirstLimitedDiscrepancySearchFactory<>();
-		NodeRecommendedTree<TFDNode, String> problemInput = new NodeRecommendedTree<>(mlPlan.getGraphGenerator(),
+		NodeRecommendedTree<TFDNode, String> problemInput = new NodeRecommendedTree<>(
+				new ReducedGraphGenerator<>(mlPlan.getGraphGenerator()),
 				new MetaMinerBasedSorter(metaMiner, mlPlan.getComponents()));
 		ldsFactory.setProblemInput(problemInput);
 		this.lds = ldsFactory.getAlgorithm();
+
+		// LimitedDiscrepancySearchFactory<TFDNode, String, NodeOrderList> factory = new
+		// LimitedDiscrepancySearchFactory<>();
+		// factory.setProblemInput(problemInput);
+		// this.lds = factory.getAlgorithm();
+		// VisualizationWindow window = new VisualizationWindow(lds);
+		// window.setTooltipGenerator(new NodeTooltipGenerator<>(new
+		// TFDTooltipGenerator<>()));
+
 	}
 
 	public void buildMetaComponents(String host, String user, String password) throws Exception {
@@ -125,7 +142,7 @@ public class MetaMLPlan extends AbstractClassifier {
 		};
 
 		// Start timer that takes into account training time of the best model as well
-		new Timer().schedule(tt, timeoutInMilliseconds - safety);
+		new Timer().schedule(tt, (timeoutInSeconds - safetyInSeconds) * 1000);
 		StopWatch totalTimer = new StopWatch();
 		totalTimer.start();
 
@@ -143,18 +160,18 @@ public class MetaMLPlan extends AbstractClassifier {
 		StopWatch trainingTimer = new StopWatch();
 		bestModel = null;
 		double bestScore = 1;
-		double bestModelExpectedTrainingTime = 0;
+		double bestModelMaxTrainingTime = 0;
 
 		while (!lds.isCanceled()) {
 			try {
 				SearchGraphPath<TFDNode, String> searchGraphPath;
 				try {
-				searchGraphPath = lds.nextSolution();
+					searchGraphPath = lds.nextSolution();
 				} catch (NoSuchElementException e) {
 					System.out.println("Finish search (Exhaustive search conducted).");
 					break;
 				}
-				
+
 				List<TFDNode> solution = searchGraphPath.getNodes();
 
 				if (solution == null) {
@@ -182,26 +199,27 @@ public class MetaMLPlan extends AbstractClassifier {
 				if (score < bestScore) {
 					bestModel = pl;
 					bestScore = score;
-					bestModelExpectedTrainingTime = trainingTimer.getTime() * 2;
+				}
+				if (trainingTimer.getTime() > bestModelMaxTrainingTime) {
+					bestModelMaxTrainingTime = trainingTimer.getTime();
 				}
 
 				// Check if enough time remaining to re-train the current best model on the
 				// whole training data
-				if ((timeoutInMilliseconds - safety) <= (totalTimer.getTime() + bestModelExpectedTrainingTime)) {
+				if ((timeoutInSeconds - safetyInSeconds)
+						* 1000 <= (totalTimer.getTime() + bestModelMaxTrainingTime)) {
 					System.out.println(
 							"MetaMLPlan: Stopping search to train best model on whole training data which is expected to take "
-									+ bestModelExpectedTrainingTime + " ms.");
+									+ bestModelMaxTrainingTime + " ms.");
 					break;
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}
-		
 
-		
 		Thread finalEval = new Thread() {
-			
+
 			@Override
 			public void run() {
 				System.out.println("MetaMLPlan: Evaluating best model on whole training data (" + bestModel + ")");
@@ -211,10 +229,10 @@ public class MetaMLPlan extends AbstractClassifier {
 					bestModel = null;
 					System.out.println("Evaluation of best model failed with exception.");
 					e.printStackTrace();
-				}			
+				}
 			}
 		};
-		
+
 		TimerTask newT = new TimerTask() {
 			@Override
 			public void run() {
@@ -222,10 +240,11 @@ public class MetaMLPlan extends AbstractClassifier {
 				finalEval.interrupt();
 			}
 		};
-		
+
 		// Start timer that interrupts the final training
 		try {
-		new Timer().schedule(newT, (long) (timeoutInMilliseconds - safety - totalTimer.getTime()));	
+			new Timer().schedule(newT,
+					(long) (timeoutInSeconds * 1000 - safetyInSeconds * 1000 - totalTimer.getTime()));
 		} catch (IllegalArgumentException e) {
 			System.out.println("No time anymore to start evaluation of final model. Abort search.");
 			return;
@@ -245,8 +264,8 @@ public class MetaMLPlan extends AbstractClassifier {
 		eventBus.register(listener);
 	}
 
-	public void setTimeOutInMilliSeconds(int milliSeconds) {
-		this.timeoutInMilliseconds = milliSeconds;
+	public void setTimeOutInSeconds(int timeOutInSeconds) {
+		this.timeoutInSeconds = timeOutInSeconds;
 	}
 
 	public void setMetaFeatureSetName(String metaFeatureSetName) {
