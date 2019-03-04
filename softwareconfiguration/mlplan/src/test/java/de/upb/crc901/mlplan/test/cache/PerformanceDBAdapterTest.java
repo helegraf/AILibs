@@ -17,7 +17,7 @@ import hasco.serialization.ComponentLoader;
 import jaicore.basic.SQLAdapter;
 import jaicore.ml.WekaUtil;
 import jaicore.ml.cache.ReproducibleInstances;
-import jaicore.ml.core.evaluation.measure.multilabel.F1AverageMeasure;
+import jaicore.ml.core.evaluation.measure.multilabel.InverseF1MacroAverageDMultilabelMeasure;
 import jaicore.ml.core.evaluation.measure.singlelabel.ZeroOneLoss;
 import weka.attributeSelection.OneRAttributeEval;
 import weka.attributeSelection.Ranker;
@@ -59,7 +59,7 @@ public class PerformanceDBAdapterTest {
 					"4350e421cdc16404033ef1812ea38c01");
 			List<ReproducibleInstances> instances2 = WekaUtil.getStratifiedSplit(reproducibleInstances2, 5, 0.7, 0.3);
 			List<ReproducibleInstances> instances3 = WekaUtil.getStratifiedSplit(reproducibleInstances1, 4, 0.7, 0.3);
-			String className2 = F1AverageMeasure.class.getName();
+			String className2 = InverseF1MacroAverageDMultilabelMeasure.class.getName();
 
 			// This is a different dataset
 			Optional<Double> shouldntExist1 = pAdapter.exists(composition1, instances2.get(0), instances2.get(1),

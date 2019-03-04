@@ -26,6 +26,8 @@ public class MonteCarloCrossValidationEvaluator implements IObjectEvaluator<Mult
 	private final float trainingPortion;
 	private final int seed;
 	private final Random random;
+	private double percentile_75;
+	private long n;
 
 	public MonteCarloCrossValidationEvaluator(ADecomposableMultilabelMeasure basicEvaluator, int repeats, Instances data, float trainingPortion, int seed) {
 		super();
@@ -74,10 +76,20 @@ public class MonteCarloCrossValidationEvaluator implements IObjectEvaluator<Mult
 		}
 		Double score = stats.getMean();
 		logger.info("Obtained score of {} for classifier {}.", score, c);
+		this.percentile_75 = stats.getPercentile(0.75);
+		this.n = stats.getN();
 		return score;
 	}
 
 	public int getSeed() {
 		return seed;
+	}
+
+	public double getPercentile_75() {
+		return percentile_75;
+	}
+
+	public long getN() {
+		return n;
 	}
 }
