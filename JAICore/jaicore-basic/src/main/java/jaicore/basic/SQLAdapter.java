@@ -173,6 +173,36 @@ public class SQLAdapter implements Serializable, AutoCloseable {
 		String statement = "INSERT INTO " + table + " (" + sb1.toString() + ") VALUES (" + sb2.toString() + ")";
 		return this.insert(statement, values);
 	}
+	
+	public void insertNoNewValues(final String sql, final List<? extends Object> values) throws SQLException {
+		this.checkConnection();
+		PreparedStatement stmt = this.connect.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+		for (int i = 1; i <= values.size(); i++) {
+			this.setValue(stmt, i, values.get(i - 1));
+		}
+		stmt.executeUpdate();
+	}
+	
+	public void insertNoNewValues(final String table, final Map<String, ? extends Object> map) throws SQLException {
+		StringBuilder sb1 = new StringBuilder();
+		StringBuilder sb2 = new StringBuilder();
+		List<Object> values = new ArrayList<>();
+		for (String key : map.keySet()) {
+			if (map.get(key) == null) {
+				continue;
+			}
+			if (sb1.length() != 0) {
+				sb1.append(", ");
+				sb2.append(", ");
+			}
+			sb1.append(key);
+			sb2.append("?");
+			values.add(map.get(key));
+		}
+
+		String statement = "INSERT INTO " + table + " (" + sb1.toString() + ") VALUES (" + sb2.toString() + ")";
+		this.insertNoNewValues(statement, values);
+	}
 
 	public void update(final String sql) throws SQLException {
 		this.update(sql, new ArrayList<String>());

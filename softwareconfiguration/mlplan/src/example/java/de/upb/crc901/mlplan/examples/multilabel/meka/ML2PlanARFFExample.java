@@ -39,7 +39,7 @@ public class ML2PlanARFFExample {
 		/* initialize ml2plan, and let it run for 150 seconds */
 		ML2PlanMekaClassifier ml2plan = new MekaML2PlanMekaClassifier(new ML2PlanMekaBuilder()
 				.withSearchSpaceConfig(new File("conf/automl/searchmodels/meka/mlplan-multilabel.json"))
-				.withPerformanceMeasure(MultiLabelPerformanceMeasure.RANK), split.get(0));
+				.withPerformanceMeasure(MultiLabelPerformanceMeasure.RANK), data);
 		ml2plan.setPortionOfDataForPhase2(0.0f);
 		ml2plan.setLoggerName("ml2plan");
 		ml2plan.setTimeout(150, TimeUnit.SECONDS);
