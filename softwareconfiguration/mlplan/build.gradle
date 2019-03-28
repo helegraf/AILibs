@@ -41,7 +41,7 @@ dependencies {
 	compile 'net.sourceforge.owlapi:owlapi-distribution:5.1.0'
 	
 	// TreeMiner
-	compile 'com.github.helegraf:TreeMiner:-SNAPSHOT'
+	compile 'com.github.helegraf:TreeMiner:7fecf57ce7'
 	
 	// Data-Handling (meta data and classifier perf. values data base connection)
 	compile ('com.github.helegraf:data-handling:bd4f875ad5') {

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -24,25 +23,17 @@ import hasco.core.Util;
 import hasco.metamining.MetaMinerBasedSorter;
 import hasco.model.Component;
 import hasco.model.ComponentInstance;
-import jaicore.graph.TreeNode;
-import jaicore.graphvisualizer.TooltipGenerator;
-import jaicore.graphvisualizer.gui.VisualizationWindow;
-import jaicore.ml.core.evaluation.measure.EventEmittingMeasure;
-import jaicore.ml.core.evaluation.measure.IMeasure;
 import jaicore.ml.core.evaluation.measure.singlelabel.ZeroOneLoss;
 import jaicore.ml.metafeatures.GlobalCharacterizer;
 import jaicore.planning.graphgenerators.task.tfd.TFDNode;
-import jaicore.planning.graphgenerators.task.tfd.TFDTooltipGenerator;
 import jaicore.search.algorithms.standard.AbstractORGraphSearch;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.INodeEvaluator;
 import jaicore.search.algorithms.standard.lds.BestFirstLimitedDiscrepancySearchFactory;
-import jaicore.search.algorithms.standard.lds.LimitedDiscrepancySearchFactory;
 import jaicore.search.algorithms.standard.lds.NodeOrderList;
 import jaicore.search.model.other.EvaluatedSearchGraphPath;
 import jaicore.search.model.other.SearchGraphPath;
 import jaicore.search.model.probleminputs.NodeRecommendedTree;
 import jaicore.search.model.travesaltree.Node;
-import jaicore.search.model.travesaltree.NodeTooltipGenerator;
 import jaicore.search.structure.graphgenerator.ReducedGraphGenerator;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -133,17 +124,17 @@ public class MetaMLPlan extends AbstractClassifier {
 	@Override
 	public void buildClassifier(Instances data) throws Exception {
 		// Start timer to interrupt search if it takes to long
-		TimerTask tt = new TimerTask() {
-
-			@Override
-			public void run() {
-				System.out.println("MetaMLPlan: Interrupting search because time is running out.");
-				lds.cancel();
-			}
-		};
-
-		// Start timer that takes into account training time of the best model as well
-		new Timer().schedule(tt, (timeoutInSeconds - safetyInSeconds) * 1000);
+//		TimerTask tt = new TimerTask() {
+//
+//			@Override
+//			public void run() {
+//				System.out.println("MetaMLPlan: Interrupting search because time is running out.");
+//				lds.cancel();
+//			}
+//		};
+//
+//		// Start timer that takes into account training time of the best model as well
+//		new Timer().schedule(tt, (timeoutInSeconds - safetyInSeconds) * 1000);
 		StopWatch totalTimer = new StopWatch();
 		totalTimer.start();
 
@@ -169,7 +160,7 @@ public class MetaMLPlan extends AbstractClassifier {
 				try {
 					searchGraphPath = lds.nextSolution();
 				} catch (NoSuchElementException e) {
-					System.out.println("Finish search (Exhaustive search conducted).");
+					System.out.println("MetaMLPlan: Finish search (Exhaustive search conducted).");
 					break;
 				}
 
