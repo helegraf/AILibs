@@ -77,7 +77,9 @@ public class MLPlanBuilder {
 
 	/* Search space configuration files for default configurations */
 	private static final File SPC_TINYTEST = new File("resources/automl/searchmodels/weka/tinytest.json");
+	private static final File SPC_TINYTEST_REGRESSION = new File("resources/automl/searchmodels/weka/tinytest_regression.json");
 	private static final File SPC_AUTO_WEKA = new File("resources/automl/searchmodels/weka/weka-all-autoweka.json");
+	private static final File SPC_WEKA_REGRESSION_MERGED = new File("resources/automl/searchmodels/weka/weka-regression-merged.json");
 	private static final File SPC_SKLEARN = new File("resources/automl/searchmodels/sklearn/sklearn-mlplan.json");
 	private static final File SPC_SKLEARN_UL = new File("resources/automl/searchmodels/sklearn/ml-plan-ul.json");
 	private static final File SPC_MEKA = new File("resources/automl/searchmodels/meka/meka-multilabel.json");
@@ -100,7 +102,7 @@ public class MLPlanBuilder {
 	 * @author mwever
 	 */
 	private enum EDefaultConfig {
-		TINYTEST(SPC_TINYTEST, PREFC_AUTO_WEKA), AUTO_WEKA(SPC_AUTO_WEKA, PREFC_AUTO_WEKA), SKLEARN(SPC_SKLEARN, PREFC_SKLEARN), SKLEARN_UL(SPC_SKLEARN_UL, PREFC_SKLEARN_UL), MEKA(SPC_MEKA, PREFC_MEKA);
+		TINYTEST(SPC_TINYTEST, PREFC_AUTO_WEKA), TINYTEST_REGRESSION(SPC_TINYTEST_REGRESSION,PREFC_AUTO_WEKA), AUTO_WEKA(SPC_AUTO_WEKA, PREFC_AUTO_WEKA), WEKA_REGRESSION_MERGED(SPC_WEKA_REGRESSION_MERGED, PREFC_AUTO_WEKA),SKLEARN(SPC_SKLEARN, PREFC_SKLEARN), SKLEARN_UL(SPC_SKLEARN_UL, PREFC_SKLEARN_UL), MEKA(SPC_MEKA, PREFC_MEKA);
 
 		/* Search space configuration file */
 		private final File searchSpaceConfigurationFile;
@@ -237,11 +239,38 @@ public class MLPlanBuilder {
 		this.pipelineValidityCheckingNodeEvaluator = new WekaPipelineValidityCheckingNodeEvaluator();
 		return this.withDefaultConfiguration(EDefaultConfig.AUTO_WEKA);
 	}
+	
+	/**
+	 * Use the builder with a configuration consisting of all known WEKA 
+	 * regression algorithms and algorithms that are applicable to both 
+	 * regression and classification problems.
+	 * 
+	 * @return the Builder for method chaining
+	 * @throws IOException if the search space config file could not be loaded.
+	 */
+	public MLPlanBuilder withWEKARegressionMergedConfiguration() throws IOException {
+		this.classifierFactory = new WEKAPipelineFactory();
+		this.pipelineValidityCheckingNodeEvaluator = new WekaPipelineValidityCheckingNodeEvaluator();
+		return this.withDefaultConfiguration(EDefaultConfig.WEKA_REGRESSION_MERGED);
+	}
 
+	/**
+	 * Use the builder with a tiny testing configuration consisting of
+	 * two algorithms that work for regression.
+	 * 
+	 * @return the Builder for method chaining
+	 * @throws IOException if the search space config file could not be loaded.
+	 */
 	public MLPlanBuilder withTinyTestConfiguration() throws IOException {
 		this.classifierFactory = new WEKAPipelineFactory();
 		this.pipelineValidityCheckingNodeEvaluator = new WekaPipelineValidityCheckingNodeEvaluator();
 		return this.withDefaultConfiguration(EDefaultConfig.TINYTEST);
+	}
+	
+	public MLPlanBuilder withTinyTestForRegressionConfiguration() throws IOException {
+		this.classifierFactory = new WEKAPipelineFactory();
+		this.pipelineValidityCheckingNodeEvaluator = new WekaPipelineValidityCheckingNodeEvaluator();
+		return this.withDefaultConfiguration(EDefaultConfig.TINYTEST_REGRESSION);
 	}
 
 	public MLPlanBuilder withMekaDefaultConfiguration() throws IOException {

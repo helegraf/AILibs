@@ -3,6 +3,7 @@ package jaicore.ml.openml;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -76,6 +77,37 @@ public class OpenMLHelper {
 	}
 
 	/**
+	 * Get the instances with the given dataset id from OpenML using the given
+	 * ApiKey.
+	 * 
+	 * @param did
+	 *            the dataset id
+	 * @param apikey
+	 *            the apikey
+	 * @return the instances with the index set to the correct feature
+	 * @throws Exception
+	 *             is something goes wrong while getting the dataset
+	 */
+	public static Instances getInstancesWithIndexSet(int did, String apikey) throws Exception {
+		OpenmlConnector connector = new OpenmlConnector();
+		DataSetDescription desc = connector.dataGet(did);
+		File file = desc.getDataset(apikey);
+
+		Instances data = new Instances(new FileReader(file));
+		DataFeature dfeatures = connector.dataFeatures(did);
+		Feature[] features = dfeatures.getFeatures();
+		int target = -1;
+		for (int i = 0; i < features.length; i++) {
+			if (features[i].getIs_target()) {
+				target = i;
+			}
+		}
+
+		data.setClassIndex(target);
+		return data;
+	}
+
+	/**
 	 * Downloads the data set with the given id and returns the Instances file for
 	 * it. Will save the {@link org.openml.apiconnector.xml.DataSetDescription} and
 	 * the Instances to the location specified in the
@@ -83,7 +115,8 @@ public class OpenMLHelper {
 	 *
 	 * @param dataId
 	 * @return
-	 * @throws IOException if something goes wrong while loading Instances from openml
+	 * @throws IOException
+	 *             if something goes wrong while loading Instances from openml
 	 */
 	public static Instances getInstancesById(final int dataId) throws IOException {
 		Instances dataset = null;
@@ -120,7 +153,8 @@ public class OpenMLHelper {
 
 		// For saving data sets
 		BufferedWriter writer = Files.newBufferedWriter(
-				FileSystems.getDefault().getPath("resources/datasets_" + maxNumFeatures + "_" + maxNumInstances), StandardCharsets.UTF_8);
+				FileSystems.getDefault().getPath("resources/datasets_" + maxNumFeatures + "_" + maxNumInstances),
+				StandardCharsets.UTF_8);
 
 		// OpenML connection
 		OpenmlConnector client = new OpenmlConnector();
@@ -208,7 +242,7 @@ public class OpenMLHelper {
 		System.out.println("Fit for analysis: " + fitForAnalysis);
 	}
 
-	public static void main (final String[] args) {
+	public static void main(final String[] args) {
 		try {
 			createDataSetIndex(-1, -1);
 		} catch (Exception e) {

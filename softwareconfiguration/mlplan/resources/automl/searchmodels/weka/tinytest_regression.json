@@ -1,0 +1,18 @@
+{
+  "repository" : "Tiny repository",
+  "components" : [
+  {
+    "name" : "weka.classifiers.rules.ZeroR",
+    "requiredInterface" : [ ],
+    "providedInterface" : [ "AbstractClassifier", "BaseClassifier" ],
+    "parameter" : [ ],
+    "dependencies" : [ ]
+  },{
+    "name" : "weka.classifiers.trees.DecisionStump",
+    "requiredInterface" : [ ],
+    "providedInterface" : [ "AbstractClassifier", "BaseClassifier" ],
+    "parameter" : [ ],
+    "dependencies" : [ ]
+  }
+  ]
+}
