@@ -28,6 +28,7 @@ import hasco.serialization.ComponentLoader;
 import hasco.variants.forwarddecomposition.HASCOViaFDAndBestFirstFactory;
 import hasco.variants.forwarddecomposition.HASCOViaFDFactory;
 import jaicore.basic.FileUtil;
+import jaicore.basic.MathExt;
 import jaicore.basic.TimeOut;
 import jaicore.basic.algorithm.reduction.AlgorithmicProblemReduction;
 import jaicore.logging.ToJSONStringUtil;
@@ -39,16 +40,20 @@ import jaicore.ml.core.evaluation.measure.multilabel.AutoMEKAGGPFitnessMeasureLo
 import jaicore.ml.core.evaluation.measure.multilabel.EMultilabelPerformanceMeasure;
 import jaicore.ml.core.evaluation.measure.singlelabel.EMultiClassPerformanceMeasure;
 import jaicore.ml.core.evaluation.measure.singlelabel.MultiClassMeasureBuilder;
-import jaicore.ml.evaluation.evaluators.weka.factory.ExtrapolatedSaturationPointEvaluatorFactory;
+import jaicore.ml.core.evaluation.measure.singlelabel.ZeroOneLoss;
+import jaicore.ml.evaluation.evaluators.weka.IClassifierEvaluator;
+import jaicore.ml.evaluation.evaluators.weka.LearningCurveExtrapolationEvaluator;
+import jaicore.ml.evaluation.evaluators.weka.factory.ClassifierEvaluatorConstructionFailedException;
 import jaicore.ml.evaluation.evaluators.weka.factory.IClassifierEvaluatorFactory;
 import jaicore.ml.evaluation.evaluators.weka.factory.LearningCurveExtrapolationEvaluatorFactory;
-import jaicore.ml.evaluation.evaluators.weka.measurebridge.IEvaluatorMeasureBridge;
-import jaicore.ml.evaluation.evaluators.weka.measurebridge.SimpleMLCEvaluatorMeasureBridge;
-import jaicore.ml.evaluation.evaluators.weka.measurebridge.SimpleSLCEvaluatorMeasureBridge;
+import jaicore.ml.evaluation.evaluators.weka.factory.MonteCarloCrossValidationEvaluatorFactory;
+import jaicore.ml.evaluation.evaluators.weka.splitevaluation.ISplitBasedClassifierEvaluator;
+import jaicore.ml.evaluation.evaluators.weka.splitevaluation.SimpleMLCSplitBasedClassifierEvaluator;
+import jaicore.ml.evaluation.evaluators.weka.splitevaluation.SimpleSLCSplitBasedClassifierEvaluator;
 import jaicore.ml.learningcurve.extrapolation.LearningCurveExtrapolationMethod;
-import jaicore.ml.wekautil.dataset.splitter.ArbitrarySplitter;
-import jaicore.ml.wekautil.dataset.splitter.IDatasetSplitter;
-import jaicore.ml.wekautil.dataset.splitter.MulticlassClassStratifiedSplitter;
+import jaicore.ml.weka.dataset.splitter.ArbitrarySplitter;
+import jaicore.ml.weka.dataset.splitter.IDatasetSplitter;
+import jaicore.ml.weka.dataset.splitter.MulticlassClassStratifiedSplitter;
 import jaicore.planning.hierarchical.algorithms.forwarddecomposition.graphgenerators.tfd.TFDNode;
 import jaicore.search.algorithms.standard.bestfirst.StandardBestFirstFactory;
 import jaicore.search.algorithms.standard.bestfirst.nodeevaluation.AlternativeNodeEvaluator;
@@ -147,12 +152,12 @@ public class MLPlanBuilder {
 
 	private EMultiClassPerformanceMeasure singleLabelPerformanceMeasure;
 	private EMultilabelPerformanceMeasure multiLabelPerformanceMeasure;
-	private IMeasure<Double, Double> measure;
-	private IEvaluatorMeasureBridge<Double> evaluatorMeasureBridge;
+	private ISplitBasedClassifierEvaluator<Double> splitBasedClassifierEvaluator;
 
 	private Predicate<TFDNode> priorizingPredicate = null;
 
-	private IClassifierEvaluatorFactory classifierEvaluatorFactory = null;
+	private IClassifierEvaluatorFactory factoryForPipelineEvaluationInSearchPhase = null;
+	private IClassifierEvaluatorFactory factoryForPipelineEvaluationInSelectionPhase = null;
 
 	public MLPlanBuilder() {
 		super();
@@ -277,7 +282,7 @@ public class MLPlanBuilder {
 		this.withDefaultConfiguration(EDefaultConfig.MEKA);
 		this.singleLabelPerformanceMeasure = null;
 		this.multiLabelPerformanceMeasure = EMultilabelPerformanceMeasure.AUTO_MEKA_GGP_FITNESS_LOSS;
-		this.evaluatorMeasureBridge = new SimpleMLCEvaluatorMeasureBridge(new AutoMEKAGGPFitnessMeasureLoss());
+		this.splitBasedClassifierEvaluator = new SimpleMLCSplitBasedClassifierEvaluator(new AutoMEKAGGPFitnessMeasureLoss());
 		this.classifierFactory = new MekaPipelineFactory();
 		this.requestedHASCOInterface = MLC_REQUESTED_HASCO_INTERFACE;
 		this.withDatasetSplitterForSearchSelectionSplit(new ArbitrarySplitter());
@@ -292,10 +297,27 @@ public class MLPlanBuilder {
 		}
 		this.withPreferredComponentsFile(defConfig.preferredComponentsFile);
 		this.withRandomCompletionBasedBestFirstSearch();
-		if (!(defConfig == EDefaultConfig.MEKA) && this.singleLabelPerformanceMeasure == null) {
+		if (defConfig != EDefaultConfig.MEKA && this.singleLabelPerformanceMeasure == null) {
 			this.singleLabelPerformanceMeasure = EMultiClassPerformanceMeasure.ERRORRATE;
 			this.withSingleLabelClassificationMeasure(this.singleLabelPerformanceMeasure);
 		}
+
+		/* use MCCV for pipeline evaluation */
+		int mccvIterationsDuringSearch = 5;
+		int mccvIterationsDuringSelection = 5;
+		double mccvPortion = 0.7;
+		if (!(this.factoryForPipelineEvaluationInSearchPhase instanceof MonteCarloCrossValidationEvaluatorFactory)) {
+			this.factoryForPipelineEvaluationInSearchPhase = new MonteCarloCrossValidationEvaluatorFactory().withNumMCIterations(mccvIterationsDuringSearch).withTrainFoldSize(mccvPortion).withSplitBasedEvaluator(new SimpleSLCSplitBasedClassifierEvaluator(new ZeroOneLoss()));
+		}
+		if (!(this.factoryForPipelineEvaluationInSelectionPhase instanceof MonteCarloCrossValidationEvaluatorFactory)) {
+			this.factoryForPipelineEvaluationInSelectionPhase = new MonteCarloCrossValidationEvaluatorFactory().withNumMCIterations(mccvIterationsDuringSearch).withTrainFoldSize(mccvPortion).withSplitBasedEvaluator(new SimpleSLCSplitBasedClassifierEvaluator(new ZeroOneLoss()));
+		}
+
+		/* configure blow-ups for MCCV */
+		double blowUpInSelectionPhase = MathExt.round(1f / mccvPortion * mccvIterationsDuringSelection / mccvIterationsDuringSearch, 2);
+		this.algorithmConfig.setProperty(MLPlanClassifierConfig.K_BLOWUP_SELECTION, String.valueOf(blowUpInSelectionPhase));
+		double blowUpInPostprocessing = MathExt.round((1 / (1 - this.algorithmConfig.dataPortionForSelection())) / mccvIterationsDuringSelection, 2);
+		this.algorithmConfig.setProperty(MLPlanClassifierConfig.K_BLOWUP_POSTPROCESS, String.valueOf(blowUpInPostprocessing));
 		return this;
 	}
 
@@ -331,12 +353,12 @@ public class MLPlanBuilder {
 
 	public MLPlanBuilder withSingleLabelClassificationMeasure(final EMultiClassPerformanceMeasure measure) {
 		this.singleLabelPerformanceMeasure = measure;
-		return this.withEvaluatorMeasureBridge(this.getSingleLabelEvaluationMeasurementBridge(new MultiClassMeasureBuilder().getEvaluator(measure)));
+		return this.withSplitBasedClassifierEvaluator(this.getSingleLabelEvaluationMeasurementBridge(new MultiClassMeasureBuilder().getEvaluator(measure)));
 	}
 
 	public MLPlanBuilder withMultiLabelClassificationMeasure(final EMultilabelPerformanceMeasure measure) {
 		this.multiLabelPerformanceMeasure = measure;
-		return this.withEvaluatorMeasureBridge(this.getMultiLabelEvaluationMeasurementBridge(new MultiClassMeasureBuilder().getEvaluator(measure)));
+		return this.withSplitBasedClassifierEvaluator(this.getMultiLabelEvaluationMeasurementBridge(new MultiClassMeasureBuilder().getEvaluator(measure)));
 	}
 
 	/**
@@ -362,13 +384,8 @@ public class MLPlanBuilder {
 		return this;
 	}
 
-	public MLPlanBuilder withEvaluatorMeasureBridge(final IEvaluatorMeasureBridge<Double> bridge) {
-		this.evaluatorMeasureBridge = bridge;
-		return this;
-	}
-
-	public MLPlanBuilder withMeasure(final IMeasure<Double, Double> measure) {
-		this.measure = measure;
+	public MLPlanBuilder withSplitBasedClassifierEvaluator(final ISplitBasedClassifierEvaluator<Double> evaluator) {
+		this.splitBasedClassifierEvaluator = evaluator;
 		return this;
 	}
 
@@ -475,15 +492,18 @@ public class MLPlanBuilder {
 		return this.requestedHASCOInterface;
 	}
 
-	public void withExtrapolatedSaturationPointEvaluation(final int[] anchorpoints, final ISamplingAlgorithmFactory<IInstance, ? extends ASamplingAlgorithm<IInstance>> subsamplingAlgorithmFactory,
-			final double trainSplitForAnchorpointsMeasurement, final LearningCurveExtrapolationMethod extrapolationMethod) {
-		this.classifierEvaluatorFactory = new ExtrapolatedSaturationPointEvaluatorFactory(anchorpoints, subsamplingAlgorithmFactory, trainSplitForAnchorpointsMeasurement, extrapolationMethod);
-
-	}
+	//	public void withExtrapolatedSaturationPointEvaluation(final int[] anchorpoints, final ISamplingAlgorithmFactory<IInstance, ? extends ASamplingAlgorithm<IInstance>> subsamplingAlgorithmFactory,
+	//			final double trainSplitForAnchorpointsMeasurement, final LearningCurveExtrapolationMethod extrapolationMethod) {
+	//		this.builderForPipelineEvaluationInSearchPhase = new ExtrapolatedSaturationPointEvaluatorFactory(anchorpoints, subsamplingAlgorithmFactory, trainSplitForAnchorpointsMeasurement, extrapolationMethod);
+	//
+	//	}
 
 	public void withLearningCurveExtrapolationEvaluation(final int[] anchorpoints, final ISamplingAlgorithmFactory<IInstance, ? extends ASamplingAlgorithm<IInstance>> subsamplingAlgorithmFactory,
 			final double trainSplitForAnchorpointsMeasurement, final LearningCurveExtrapolationMethod extrapolationMethod) {
-		this.classifierEvaluatorFactory = new LearningCurveExtrapolationEvaluatorFactory(anchorpoints, subsamplingAlgorithmFactory, trainSplitForAnchorpointsMeasurement, extrapolationMethod);
+		this.factoryForPipelineEvaluationInSearchPhase = new LearningCurveExtrapolationEvaluatorFactory(anchorpoints, subsamplingAlgorithmFactory, trainSplitForAnchorpointsMeasurement, extrapolationMethod);
+		//		this.factoryForPipelineEvaluationInSelectionPhase = new LearningCurveExtrapolationEvaluatorFactory(anchorpoints, subsamplingAlgorithmFactory, trainSplitForAnchorpointsMeasurement, extrapolationMethod);
+		this.factoryForPipelineEvaluationInSelectionPhase = new MonteCarloCrossValidationEvaluatorFactory().withNumMCIterations(3).withTrainFoldSize(.7).withSplitBasedEvaluator(new SimpleSLCSplitBasedClassifierEvaluator(new ZeroOneLoss()));
+		this.algorithmConfig.setProperty(MLPlanClassifierConfig.K_BLOWUP_SELECTION, "" + 4); // evaluating on 1000 in selection MCCV is, assuming quadratic growth, roughly max 4 times costlier than search phase evaluations
 	}
 
 	public boolean getUseCache() {
@@ -518,23 +538,23 @@ public class MLPlanBuilder {
 		return this.multiLabelPerformanceMeasure;
 	}
 
-	public IEvaluatorMeasureBridge<Double> getSingleLabelEvaluationMeasurementBridge(final IMeasure<Double, Double> measure) {
-		if (this.evaluatorMeasureBridge == null) {
+	public ISplitBasedClassifierEvaluator<Double> getSingleLabelEvaluationMeasurementBridge(final IMeasure<Double, Double> measure) {
+		if (this.splitBasedClassifierEvaluator == null) {
 			if (this.getUseCache()) {
 				return new CacheEvaluatorMeasureBridge(measure, this.getDBAdapter());
 			} else {
-				return new SimpleSLCEvaluatorMeasureBridge(measure);
+				return new SimpleSLCSplitBasedClassifierEvaluator(measure);
 			}
 		} else {
-			return this.evaluatorMeasureBridge;
+			return this.splitBasedClassifierEvaluator;
 		}
 	}
 
-	public IEvaluatorMeasureBridge<Double> getMultiLabelEvaluationMeasurementBridge(final IMeasure<double[], Double> measure) {
-		if (this.evaluatorMeasureBridge == null) {
-			return new SimpleMLCEvaluatorMeasureBridge(measure);
+	public ISplitBasedClassifierEvaluator<Double> getMultiLabelEvaluationMeasurementBridge(final IMeasure<double[], Double> measure) {
+		if (this.splitBasedClassifierEvaluator == null) {
+			return new SimpleMLCSplitBasedClassifierEvaluator(measure);
 		} else {
-			return this.evaluatorMeasureBridge;
+			return this.splitBasedClassifierEvaluator;
 		}
 	}
 
@@ -543,17 +563,17 @@ public class MLPlanBuilder {
 		return this.hascoFactory;
 	}
 
-	public IEvaluatorMeasureBridge<Double> getEvaluationMeasurementBridge() {
-		if (this.evaluatorMeasureBridge != null) {
-			return this.evaluatorMeasureBridge;
-		}
-
-		if (this.measure != null) {
-			return this.getSingleLabelEvaluationMeasurementBridge(this.measure);
-		} else {
-			throw new IllegalStateException("Can not create evaluator measure bridge without a measure.");
-		}
-	}
+	//	public ISplitBasedClassifierEvaluator<Double> getEvaluationMeasurementBridge() {
+	//		if (this.splitBasedClassifierEvaluator != null) {
+	//			return this.splitBasedClassifierEvaluator;
+	//		}
+	//
+	//		if (this.measure != null) {
+	//			return this.getSingleLabelEvaluationMeasurementBridge(this.measure);
+	//		} else {
+	//			throw new IllegalStateException("Can not create evaluator measure bridge without a measure.");
+	//		}
+	//	}
 
 	@Override
 	public String toString() {
@@ -563,8 +583,29 @@ public class MLPlanBuilder {
 		return ToJSONStringUtil.toJSONString(fields);
 	}
 
-	public IClassifierEvaluatorFactory getClassifierEvaluatorFactory() {
-		return this.classifierEvaluatorFactory;
+	public IClassifierEvaluatorFactory getFactoryForPipelineEvaluationInSearchPhase() {
+		return this.factoryForPipelineEvaluationInSearchPhase;
 	}
 
+	public IClassifierEvaluatorFactory getFactoryForPipelineEvaluationInSelectionPhase() {
+		return this.factoryForPipelineEvaluationInSelectionPhase;
+	}
+
+	public PipelineEvaluator getClassifierEvaluationInSearchPhase(final Instances data, final int seed, final int fullDatasetSize) throws ClassifierEvaluatorConstructionFailedException {
+		if (this.factoryForPipelineEvaluationInSearchPhase == null) {
+			throw new IllegalStateException("No factory for pipeline evaluation in search phase has been set!");
+		}
+		IClassifierEvaluator evaluator = this.factoryForPipelineEvaluationInSearchPhase.getIClassifierEvaluator(data, seed);
+		if (evaluator instanceof LearningCurveExtrapolationEvaluator) {
+			((LearningCurveExtrapolationEvaluator) evaluator).setFullDatasetSize(fullDatasetSize);
+		}
+		return new PipelineEvaluator(this.getClassifierFactory(), evaluator, this.getAlgorithmConfig().timeoutForCandidateEvaluation());
+	}
+
+	public PipelineEvaluator getClassifierEvaluationInSelectionPhase(final Instances data, final int seed) throws ClassifierEvaluatorConstructionFailedException {
+		if (this.factoryForPipelineEvaluationInSelectionPhase == null) {
+			throw new IllegalStateException("No factory for pipeline evaluation in selection phase has been set!");
+		}
+		return new PipelineEvaluator(this.getClassifierFactory(), this.factoryForPipelineEvaluationInSelectionPhase.getIClassifierEvaluator(data, seed), Integer.MAX_VALUE);
+	}
 }
