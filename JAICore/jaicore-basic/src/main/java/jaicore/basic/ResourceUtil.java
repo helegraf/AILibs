@@ -5,8 +5,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.xml.crypto.URIDereferencer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utils for handling resource access in a more convenient way.
@@ -14,17 +22,23 @@ import java.util.List;
  * @author mwever
  */
 public class ResourceUtil {
+	
+	private static final Logger logger  = LoggerFactory.getLogger(ResourceUtil.class);
 
 	private ResourceUtil() {
-		/* Intentionally left blank; simply prevent this util class to be instantiated. */
+		/*
+		 * Intentionally left blank; simply prevent this util class to be instantiated.
+		 */
 	}
 
 	/**
 	 * Reads the contents of a resource to a string.
 	 *
-	 * @param path The path of the resource that shall be read.
+	 * @param path
+	 *            The path of the resource that shall be read.
 	 * @return The contents of the resource parsed to a string.
-	 * @throws IOException Throws an IOException if the file could not be read.
+	 * @throws IOException
+	 *             Throws an IOException if the file could not be read.
 	 */
 	public static String readResourceFileToString(final String path) throws IOException {
 		StringBuilder sb = new StringBuilder();
@@ -40,10 +54,13 @@ public class ResourceUtil {
 	/**
 	 * Reads the contents of a resource to a list of strings.
 	 *
-	 * @param path The path of the resource that shall be read.
+	 * @param path
+	 *            The path of the resource that shall be read.
 	 * @return The contents of the resource parsed to a string.
-	 * @throws IOException Throws an IOException if the file could not be read.
-	 * @throws FileNotFoundException Thrown if the file could not be found.
+	 * @throws IOException
+	 *             Throws an IOException if the file could not be read.
+	 * @throws FileNotFoundException
+	 *             Thrown if the file could not be found.
 	 */
 	public static List<String> readResourceFileToStringList(final String path) throws IOException {
 		List<String> list = new LinkedList<>();
@@ -59,11 +76,13 @@ public class ResourceUtil {
 	/**
 	 * Returns the file corresponding to the given path.
 	 *
-	 * @param path The path for which a resource shall be retrieved.
+	 * @param path
+	 *            The path for which a resource shall be retrieved.
 	 * @return The resource file corresponding to the given path.
+	 * @throws IOException 
 	 */
 	public static File getResourceAsFile(final String path) {
-		return new File(ResourceUtil.class.getClassLoader().getResource(path).getFile());
+		return FileUtil.decode(new File(path));
 	}
 
 }

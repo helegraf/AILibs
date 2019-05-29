@@ -62,12 +62,15 @@ public abstract class AbstractMLPlanSingleLabelBuilder extends AbstractMLPlanBui
 			this.withSearchPhaseEvaluatorFactory(
 					new MonteCarloCrossValidationEvaluatorFactory().withDatasetSplitter(new MulticlassClassStratifiedSplitter()).withNumMCIterations(SEARCH_NUM_MC_ITERATIONS).withTrainFoldSize(SEARCH_TRAIN_FOLD_SIZE));
 		}
-		if (!(this.getSearchEvaluatorFactory() instanceof MonteCarloCrossValidationEvaluatorFactory)) {
-			this.withSearchPhaseEvaluatorFactory(
+		if (!(this.getSelectionEvaluatorFactory() instanceof MonteCarloCrossValidationEvaluatorFactory)) {
+			this.withSelectionPhaseEvaluatorFactory(
 					new MonteCarloCrossValidationEvaluatorFactory().withDatasetSplitter(new MulticlassClassStratifiedSplitter()).withNumMCIterations(SELECTION_NUM_MC_ITERATIONS).withTrainFoldSize(SELECTION_TRAIN_FOLD_SIZE));
 		}
 
 		((MonteCarloCrossValidationEvaluatorFactory) this.getSelectionEvaluatorFactory()).withSplitBasedEvaluator(new SimpleSLCSplitBasedClassifierEvaluator(lossFunction));
+		
+		this.setPerformanceMeasureName(lossFunction.getClass().getSimpleName());
+		
 		return this;
 	}
 

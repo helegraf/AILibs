@@ -12,10 +12,13 @@ import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -200,6 +203,7 @@ public class FileUtil {
 	 */
 	public static File getExistingFileWithHighestPriority(final String resourcePath, final String... fileSystemPaths) {
 		if (fileSystemPaths.length > 0) {
+			System.out.println(resourcePath + " " + Arrays.toString(fileSystemPaths));
 			for (String fileSystemConfig : fileSystemPaths) {
 				File configFile = new File(fileSystemConfig);
 				if (configFile.exists()) {
@@ -207,6 +211,23 @@ public class FileUtil {
 				}
 			}
 		}
+		
 		return ResourceUtil.getResourceAsFile(resourcePath);
+	}
+	
+	/**
+	 * Tries to decode the file path using UTF-8. If not possible, returns the original file.
+	 * 
+	 * @param file
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	public static File decode(final File file) {
+		try {
+			return new File(URLDecoder.decode(file.getAbsolutePath(), "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			logger.warn("Could not decode file {} to UTF-8, returning original file path.",file.getAbsolutePath());
+			return file;
+		}
 	}
 }

@@ -2,6 +2,7 @@ package de.upb.crc901.mlplan.core;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -165,7 +166,7 @@ public abstract class AbstractMLPlanBuilder implements IMLPlanBuilder, ILoggingC
 	 * @throws IOException An IOException is thrown if there are issues reading the config file.
 	 */
 	public AbstractMLPlanBuilder withAlgorithmConfigFile(final File algorithmConfigFile) {
-		return this.withAlgorithmConfig((MLPlanClassifierConfig) ConfigFactory.create(MLPlanClassifierConfig.class).loadPropertiesFromFile(algorithmConfigFile));
+		return this.withAlgorithmConfig((MLPlanClassifierConfig) ConfigFactory.create(MLPlanClassifierConfig.class).loadPropertiesFromFile(FileUtil.decode(algorithmConfigFile)));
 	}
 
 	/**
@@ -189,13 +190,14 @@ public abstract class AbstractMLPlanBuilder implements IMLPlanBuilder, ILoggingC
 	 * @throws IOException Thrown if a problem occurs while trying to read the file containing the priority list.
 	 */
 	public AbstractMLPlanBuilder withPreferredComponentsFile(final File preferredComponentsFile) throws IOException {
-		this.getAlgorithmConfig().setProperty(MLPlanClassifierConfig.PREFERRED_COMPONENTS, preferredComponentsFile.getAbsolutePath());
+		File decodedPreferredComponentsFile = FileUtil.decode(preferredComponentsFile);
+		this.getAlgorithmConfig().setProperty(MLPlanClassifierConfig.PREFERRED_COMPONENTS, decodedPreferredComponentsFile.getAbsolutePath());
 		List<String> ordering;
-		if (!preferredComponentsFile.exists()) {
-			this.logger.warn("The configured file for preferred components \"{}\" does not exist. Not using any particular ordering.", preferredComponentsFile.getAbsolutePath());
+		if (!decodedPreferredComponentsFile.exists()) {
+			this.logger.warn("The configured file for preferred components \"{}\" does not exist. Not using any particular ordering.", decodedPreferredComponentsFile.getAbsolutePath());
 			ordering = new ArrayList<>();
 		} else {
-			ordering = FileUtil.readFileAsList(preferredComponentsFile);
+			ordering = FileUtil.readFileAsList(decodedPreferredComponentsFile);
 		}
 		return this.withPreferredNodeEvaluator(new PreferenceBasedNodeEvaluator(this.components, ordering));
 	}
@@ -226,8 +228,9 @@ public abstract class AbstractMLPlanBuilder implements IMLPlanBuilder, ILoggingC
 	 * @throws IOException Thrown if the given file does not exist.
 	 */
 	public AbstractMLPlanBuilder withSearchSpaceConfigFile(final File searchSpaceConfig) throws IOException {
-		FileUtil.requireFileExists(searchSpaceConfig);
-		this.searchSpaceFile = searchSpaceConfig;
+		File decodedSearchSpaceConfig = FileUtil.decode(searchSpaceConfig);
+		FileUtil.requireFileExists(decodedSearchSpaceConfig);		
+		this.searchSpaceFile = decodedSearchSpaceConfig;
 		this.components.clear();
 		this.components.addAll(new ComponentLoader(this.searchSpaceFile).getComponents());
 		return this;

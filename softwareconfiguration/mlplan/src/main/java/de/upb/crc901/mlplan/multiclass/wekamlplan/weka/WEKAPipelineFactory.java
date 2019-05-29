@@ -17,7 +17,9 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.MultipleClassifiersCombiner;
 import weka.classifiers.SingleClassifierEnhancer;
+import weka.classifiers.functions.GaussianProcesses;
 import weka.classifiers.functions.SMO;
+import weka.classifiers.functions.SMOreg;
 import weka.classifiers.functions.supportVector.Kernel;
 import weka.core.OptionHandler;
 
@@ -65,8 +67,16 @@ public class WEKAPipelineFactory implements IClassifierFactory {
 							Kernel k = (Kernel) Class.forName(reqI.getValue().getComponent().getName()).newInstance();
 							k.setOptions(this.getParameterList(reqI.getValue()).toArray(new String[0]));
 							((SMO) c).setKernel(k);
+						} else if (c instanceof SMOreg) {
+							Kernel k = (Kernel) Class.forName(reqI.getValue().getComponent().getName()).newInstance();
+							k.setOptions(this.getParameterList(reqI.getValue()).toArray(new String[0]));
+							((SMOreg) c).setKernel(k);
+						} else if (c instanceof GaussianProcesses) {
+							Kernel k = (Kernel) Class.forName(reqI.getValue().getComponent().getName()).newInstance();
+							k.setOptions(this.getParameterList(reqI.getValue()).toArray(new String[0]));
+							((GaussianProcesses) c).setKernel(k);
 						} else {
-							this.logger.error("Got required interface K but classifier {} is not SMO", c.getClass().getName());
+							this.logger.error("Got required interface K but classifier {} is not SMO, SMOreg or GaussianProcesses", c.getClass().getName());
 						}
 						break;
 					case "B":

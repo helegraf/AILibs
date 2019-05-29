@@ -116,3 +116,17 @@ task mlplanCLIjar(type: Jar) {
     with jar
 }
 
+task regressionExperimenterjar(type: Jar) {
+	zip64 = true
+    manifest {
+        attributes 'Main-Class': 'de.upb.crc901.mlplan.multiclass.regression.MLPlanWekaRegressionExperimenter'
+    }
+    destinationDir = file("${projectDir}")
+    archivesBaseName="regression-experimenter"
+    exclude ('META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA')
+    from sourceSets.main.allSource
+    from { (configurations.compile)
+            .collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+

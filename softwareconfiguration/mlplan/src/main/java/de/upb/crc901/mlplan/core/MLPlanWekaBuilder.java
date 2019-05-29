@@ -6,6 +6,7 @@ import java.io.IOException;
 import de.upb.crc901.mlplan.multiclass.MLPlanClassifierConfig;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.IClassifierFactory;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.WEKAPipelineFactory;
+import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.WekaPipelineValidityCheckingNodeEvaluator;
 import jaicore.basic.FileUtil;
 import jaicore.basic.MathExt;
 import jaicore.basic.ResourceUtil;
@@ -17,16 +18,20 @@ import jaicore.ml.evaluation.evaluators.weka.factory.LearningCurveExtrapolationE
 import jaicore.ml.evaluation.evaluators.weka.factory.MonteCarloCrossValidationEvaluatorFactory;
 import jaicore.ml.evaluation.evaluators.weka.splitevaluation.SimpleSLCSplitBasedClassifierEvaluator;
 import jaicore.ml.learningcurve.extrapolation.LearningCurveExtrapolationMethod;
+import jaicore.ml.weka.dataset.splitter.ArbitrarySplitter;
 import jaicore.ml.weka.dataset.splitter.IDatasetSplitter;
 import jaicore.ml.weka.dataset.splitter.MulticlassClassStratifiedSplitter;
 
 public class MLPlanWekaBuilder extends AbstractMLPlanSingleLabelBuilder {
 
-	private static final String RES_SSC_TINY_WEKA = "automl/searchmodels/weka/tinytest.json";
-	private static final String RES_SSC_WEKA_COMPLETE = "automl/searchmodels/weka/weka-all-autoweka.json";
-	private static final String FS_SSC_WEKA = "conf/mlplan-weka.json";
+	private static final String RES_SSC_TINY_WEKA = "resources/automl/searchmodels/weka/tinytest.json";
+	private static final String RES_SSC_TINY_WEKA_REGRESSION = "resources/automl/searchmodels/weka/tinytest_regression.json";
+	private static final String RES_SSC_WEKA_COMPLETE = "resources/automl/searchmodels/weka/weka-all-autoweka.json";
+	private static final String RES_SSC_WEKA_REGRESSION = "resources/automl/searchmodels/weka/weka-regression.json";
+	private static final String FS_SSC_WEKA = "conf/mlplan-weka-eval.json";
 
-	private static final String RES_PREFERRED_COMPONENTS = "mlplan/weka-preferenceList.txt";
+	private static final String RES_PREFERRED_COMPONENTS = "conf/mlplan-weka-preferenceList.txt";
+	private static final String RES_PREFERRED_COMPONENTS_REGRESSION = "conf/mlplan-weka-regression-preferenceList.txt";
 	private static final String FS_PREFERRED_COMPONENTS = "conf/mlpan-weka-preferenceList.txt";
 
 	/* Default configuration values. */
@@ -34,6 +39,7 @@ public class MLPlanWekaBuilder extends AbstractMLPlanSingleLabelBuilder {
 	private static final IDatasetSplitter DEF_SELECTION_HOLDOUT_SPLITTER = new MulticlassClassStratifiedSplitter();
 	private static final IClassifierFactory DEF_CLASSIFIER_FACTORY = new WEKAPipelineFactory();
 	private static final File DEF_PREFERRED_COMPONENTS = FileUtil.getExistingFileWithHighestPriority(RES_PREFERRED_COMPONENTS, FS_PREFERRED_COMPONENTS);
+	private static final File DEF_PREFERRED_COMPONENTS_REGRESSION = FileUtil.getExistingFileWithHighestPriority(RES_PREFERRED_COMPONENTS_REGRESSION, FS_PREFERRED_COMPONENTS);
 	private static final File DEF_SEARCH_SPACE_CONFIG = FileUtil.getExistingFileWithHighestPriority(RES_SSC_WEKA_COMPLETE, FS_SSC_WEKA);
 	private static final MonteCarloCrossValidationEvaluatorFactory DEF_SEARCH_PHASE_EVALUATOR = new MonteCarloCrossValidationEvaluatorFactory().withNumMCIterations(SEARCH_NUM_MC_ITERATIONS).withTrainFoldSize(SEARCH_TRAIN_FOLD_SIZE)
 			.withSplitBasedEvaluator(new SimpleSLCSplitBasedClassifierEvaluator(LOSS_FUNCTION)).withDatasetSplitter(new MulticlassClassStratifiedSplitter());
@@ -64,6 +70,38 @@ public class MLPlanWekaBuilder extends AbstractMLPlanSingleLabelBuilder {
 	 */
 	public MLPlanWekaBuilder withTinyWekaSearchSpace() throws IOException {
 		this.withSearchSpaceConfigFile(ResourceUtil.getResourceAsFile(RES_SSC_TINY_WEKA));
+		return this;
+	}
+	
+	/**
+	 * Use the builder with a tiny testing configuration consisting of
+	 * two algorithms that work for regression.
+	 * 
+	 * @return the Builder for method chaining
+	 * @throws IOException if the search space config file could not be loaded.
+	 */
+	public MLPlanWekaBuilder withTinyTestForRegressionConfiguration() throws IOException {
+		this.withSearchSpaceConfigFile(ResourceUtil.getResourceAsFile(RES_SSC_TINY_WEKA_REGRESSION));
+		this.withDatasetSplitterForSearchSelectionSplit(new ArbitrarySplitter());
+		MLPlanWekaBuilder.DEF_SEARCH_PHASE_EVALUATOR.withDatasetSplitter(new ArbitrarySplitter());
+		MLPlanWekaBuilder.DEF_SELECTION_PHASE_EVALUATOR.withDatasetSplitter(new ArbitrarySplitter());
+		return this;
+	}
+	
+	/**
+	 * Use the builder with a configuration consisting of all known WEKA 
+	 * regression algorithms and algorithms that are applicable to both 
+	 * regression and classification problems.
+	 * 
+	 * @return the Builder for method chaining
+	 * @throws IOException if the search space config file could not be loaded.
+	 */
+	public MLPlanWekaBuilder withWEKARegressionConfiguration() throws IOException {
+		this.withPreferredComponentsFile(DEF_PREFERRED_COMPONENTS_REGRESSION);
+		this.withSearchSpaceConfigFile(ResourceUtil.getResourceAsFile(RES_SSC_WEKA_REGRESSION));
+		this.withDatasetSplitterForSearchSelectionSplit(new ArbitrarySplitter());
+		MLPlanWekaBuilder.DEF_SEARCH_PHASE_EVALUATOR.withDatasetSplitter(new ArbitrarySplitter());
+		MLPlanWekaBuilder.DEF_SELECTION_PHASE_EVALUATOR.withDatasetSplitter(new ArbitrarySplitter());
 		return this;
 	}
 
