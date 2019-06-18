@@ -233,6 +233,7 @@ public abstract class AbstractMLPlanBuilder implements IMLPlanBuilder, ILoggingC
 		this.searchSpaceFile = decodedSearchSpaceConfig;
 		this.components.clear();
 		this.components.addAll(new ComponentLoader(this.searchSpaceFile).getComponents());
+		System.out.println(components );
 		return this;
 	}
 

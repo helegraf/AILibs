@@ -71,9 +71,13 @@ public class AlternativeNodeEvaluator<T, V extends Comparable<V>> extends Decora
 	@Override
 	public V f(final Node<T, ?> node) throws NodeEvaluationException, InterruptedException {
 		V f1 = this.ne1.f(node);
+		System.out.println("Try getting f value from " + ne1.getClass().getName());
 		if (f1 != null) {
+			System.out.println("Suggest " + f1);
 			return f1;
 		}
+		
+		System.out.println("First eval was null returning value from " + super.getEvaluator().getClass().getName());
 		return super.f(node);
 	}
 

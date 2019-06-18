@@ -186,7 +186,7 @@
   	<level value="warn" />
   </logger>
   
-  <logger name="de.upb.crc901.mlplan.examples.multilabel.meka.ML2PlanAutoMLCExperimenter">
+  <logger name="de.upb.crc901.mlplan.examples">
   	<level value="info" />
   </logger>
   

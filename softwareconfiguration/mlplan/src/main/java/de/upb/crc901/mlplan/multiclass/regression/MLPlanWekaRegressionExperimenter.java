@@ -118,10 +118,10 @@ public class MLPlanWekaRegressionExperimenter implements IExperimentSetEvaluator
 		L.info("Assess test performance...");
 		eval.evaluateModel(optimizedClassifier, test);
 
-		L.info("Test error was {}. Internally estimated error for this model was {}", eval.errorRate(),
+		L.info("Test error was {}. Internally estimated error for this model was {}", eval.rootMeanSquaredError(),
 				mlplan.getInternalValidationErrorOfSelectedClassifier());
 		Map<String, Object> results = new HashMap<>();
-		results.put("rmse", eval.errorRate());
+		results.put("rmse", eval.rootMeanSquaredError());
 		if (mlplan.getSelectedClassifier() instanceof MLPipeline) {
 			results.put(CLASSIFIER_FIELD, WekaUtil
 					.getClassifierDescriptor(((MLPipeline) mlplan.getSelectedClassifier()).getBaseClassifier()));

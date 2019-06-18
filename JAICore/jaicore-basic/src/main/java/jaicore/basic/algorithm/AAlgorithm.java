@@ -178,14 +178,6 @@ public abstract class AAlgorithm<I, O> implements IAlgorithm<I, O>, ILoggingCust
 		return this.canceled > 0;
 	}
 
-	@Override
-	public String getId() {
-		if (this.id == null) {
-			this.id = this.getClass().getName() + "-" + System.currentTimeMillis();
-		}
-		return this.id;
-	}
-
 	protected void checkTermination(final boolean shutdownOnStoppingCriterion) throws InterruptedException, AlgorithmExecutionCanceledException, AlgorithmTimeoutedException {
 		this.logger.debug("Checking Termination");
 		Thread t = Thread.currentThread();
@@ -495,5 +487,17 @@ public abstract class AAlgorithm<I, O> implements IAlgorithm<I, O>, ILoggingCust
 		} catch (ExecutionException e) {
 			throw new AlgorithmException(e, "The algorithm has failed due to an exception of Callable " + r + " with timeout log message " + reasonToLogOnTimeout);
 		}
+	}
+
+	@Override
+	public String getId() {
+		if (this.id == null) {
+			this.id = this.getClass().getName() + "-" + System.currentTimeMillis();
+		}
+		return this.id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 }

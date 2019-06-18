@@ -18,6 +18,7 @@ plugins {
 }
 
 allprojects {
+
 	//Shadow for fat-jars
 	apply plugin: "com.github.johnrengelman.shadow"
 
