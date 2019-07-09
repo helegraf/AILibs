@@ -103,7 +103,7 @@
     "dependencies" : [ ]
   }, {
   	"name" : "weka.classifiers.functions.GaussianProcesses",
-  	"requiredInterface" : [ {"id": "K", "name":  "K" } ],
+  	"requiredInterface" : [],
   	"providedInterface" : ["AbstractClassifier","WekaBaseClassifier","Regressor","BaseClassifier"],
   	"parameter" : [ {
   		"name" : "L",

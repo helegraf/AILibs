@@ -92,7 +92,7 @@ allprojects {
 	
 		//Logger
 		compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-		runtimeOnly group: 'org.slf4j', name:'slf4j-log4j12', version:'1.7.25'
+		compile group: 'org.slf4j', name:'slf4j-log4j12', version:'1.7.25'
 
 		//Testing
 		testCompile group: 'junit', name: 'junit', version: '4.12'

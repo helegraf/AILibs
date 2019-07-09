@@ -1,7 +1,11 @@
 package de.upb.crc901.mlplan.core;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +71,7 @@ public class MLPlan extends AAlgorithm<Instances, Classifier> implements ILoggin
 		}
 		/* store builder and data for main algorithm */
 		this.builder = builder;
-		this.data = data;
+		this.data = data;	
 	}
 
 	@Override

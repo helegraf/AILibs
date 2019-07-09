@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import de.upb.crc901.mlplan.core.AbstractMLPlanBuilder;
 import de.upb.crc901.mlplan.core.MLPlan;
 import de.upb.crc901.mlplan.core.MLPlanWekaBuilder;
+import de.upb.crc901.mlplan.core.MLPlanWekaRegressionBuilder;
 import de.upb.crc901.mlplan.gui.outofsampleplots.OutOfSampleErrorPlotPlugin;
 import hasco.gui.statsplugin.HASCOModelStatisticsPlugin;
 import jaicore.basic.TimeOut;
@@ -50,12 +51,12 @@ public class MLPlanWekaRegressionExample {
 		
 		long seed = 0;
 		L.info("Split instances with seed {}", seed);
+		//TODO exchange for random splitter 
 		List<Instances> stratifiedSplit = WekaUtil.getStratifiedSplit(data, seed, .7);
 
 		/* initialize ML-Plan with the same config file that has been used to specify the experiments */	
-		MLPlanWekaBuilder builder = AbstractMLPlanBuilder.forWeka();
+		MLPlanWekaRegressionBuilder builder = AbstractMLPlanBuilder.forWekaRegression();
 		builder.withTinyTestForRegressionConfiguration();
-		builder.withPerformanceMeasure(new RootMeanSquaredErrorLoss());
 		builder.withTimeOut(new TimeOut(60, TimeUnit.SECONDS));
 		builder.withNodeEvaluationTimeOut(new TimeOut(15, TimeUnit.SECONDS));
 		builder.withCandidateEvaluationTimeOut(new TimeOut(15, TimeUnit.SECONDS));

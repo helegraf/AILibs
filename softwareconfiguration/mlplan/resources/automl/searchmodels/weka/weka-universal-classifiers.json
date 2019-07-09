@@ -49,49 +49,6 @@
     } ],
     "dependencies" : [ ]
   }, {
-  	"name" : "weka.classifiers.functions.SGD",
-    "requiredInterface" : [ ],
-    "providedInterface" : [ "AbstractClassifier", "WekaBaseClassifier", "BaseClassifier" ],
-    "parameter" : [ {
-    	"name" : "F",
-    	"type" : "cat",
-    	"default" : "0",
-    	"values" : ["0","1","2","3","4"]
-    }, {
-    	"name" : "L",
-    	"type" : "double",
-      	"default" : 0.01,
-      	"min" : 0.00001,
-      	"max" : 0.1,
-      	"refineSplits" : 8,
-      	"minInterval" : 10
-    }, {
-    	"name" : "R",
-    	"type" : "double",
-      	"default" : 0.0001,
-      	"min" : 1.0E-12,
-      	"max" : 10.0,
-      	"refineSplits" : 8,
-      	"minInterval" : 10
-    }, {
-    	"name" : "E",
-    	"type" : "int",
-      	"default" : 500.0,
-      	"min" : 250.0,
-      	"max" : 1000.0,
-      	"refineSplits" : 8,
-      	"minInterval" : 10
-    }, {
-    	"name" : "N",
-    	"type" : "boolean",
-    	"default" : "false"
-    }, {
-    	"name" : "M",
-    	"type" : "boolean",
-    	"default" : "false"
-    }
-    ]
-  },  {
   	"name" : "weka.classifiers.rules.DecisionTable",
     "requiredInterface" : [ ],
     "providedInterface" : [ "AbstractClassifier", "WekaBaseClassifier", "BaseClassifier" ],

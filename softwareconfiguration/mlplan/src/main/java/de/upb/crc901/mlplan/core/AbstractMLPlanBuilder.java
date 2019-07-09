@@ -107,6 +107,16 @@ public abstract class AbstractMLPlanBuilder implements IMLPlanBuilder, ILoggingC
 	public static MLPlanWekaBuilder forWeka() throws IOException {
 		return new MLPlanWekaBuilder();
 	}
+	
+	/**
+	 * Get a builder for a Weka-based ML-Plan for regression problems.
+	 * 
+	 * @return the ML-Plan Weka regression builder
+	 * @throws IOException if default files needed to initialize the builder cannot be found
+	 */
+	public static MLPlanWekaRegressionBuilder forWekaRegression() throws IOException {
+		return new MLPlanWekaRegressionBuilder();
+	}
 
 	public static MLPlanMekaBuilder forMeka() throws IOException {
 		return new MLPlanMekaBuilder();

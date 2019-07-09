@@ -79,12 +79,6 @@ public class PreferenceBasedNodeEvaluator implements INodeEvaluator<TFDNode, Dou
 				}
 			}
 		}
-		
-		if (instance!= null) {
-			System.out.println("Returning score " + score + " for " + instance.getComponent().getName());
-		} else {
-			System.out.println("Reutrning score " + score + " for instance that cannot be parsed");
-		}
 
 		return score;
 

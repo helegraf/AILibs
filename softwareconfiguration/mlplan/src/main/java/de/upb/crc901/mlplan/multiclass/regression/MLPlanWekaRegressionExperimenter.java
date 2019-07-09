@@ -21,6 +21,7 @@ import com.google.common.eventbus.Subscribe;
 import de.upb.crc901.mlplan.core.AbstractMLPlanBuilder;
 import de.upb.crc901.mlplan.core.MLPlan;
 import de.upb.crc901.mlplan.core.MLPlanWekaBuilder;
+import de.upb.crc901.mlplan.core.MLPlanWekaRegressionBuilder;
 import de.upb.crc901.mlplan.core.events.ClassifierFoundEvent;
 import de.upb.crc901.mlplan.multiclass.wekamlplan.weka.model.MLPipeline;
 import jaicore.basic.SQLAdapter;
@@ -93,9 +94,8 @@ public class MLPlanWekaRegressionExperimenter implements IExperimentSetEvaluator
 
 	public void runmlplan(Map<String, String> experimentValues, ExperimentDBEntry experimentEntry,
 			IExperimentIntermediateResultProcessor processor, Instances train, Instances test) throws Exception {
-		MLPlanWekaBuilder builder = AbstractMLPlanBuilder.forWeka();
+		MLPlanWekaRegressionBuilder builder = AbstractMLPlanBuilder.forWekaRegression();
 		builder.withWEKARegressionConfiguration();
-		builder.withPerformanceMeasure(new RootMeanSquaredErrorLoss());
 		builder.withTimeOut(new TimeOut(Integer.parseInt(experimentValues.get("timeout")), TimeUnit.SECONDS));
 		builder.withNodeEvaluationTimeOut(
 				new TimeOut(Integer.parseInt(experimentValues.get("evaluationTimeout")), TimeUnit.SECONDS));
