@@ -18,6 +18,7 @@ public interface IDatabaseConfig extends Mutable, Reloadable {
 	public static final String DB_PASS = "db.password";
 	public static final String DB_NAME = "db.database";
 	public static final String DB_TABLE = "db.table";
+	public static final String DB_INTERMEDIATE_TABLE = "db.table.intermediate";
 	public static final String DB_SSL = "db.ssl";
 
 	@Key(DB_HOST)
@@ -34,6 +35,9 @@ public interface IDatabaseConfig extends Mutable, Reloadable {
 
 	@Key(DB_TABLE)
 	public String getDBTableName();
+	
+	@Key(DB_INTERMEDIATE_TABLE)
+	public String getDBIntermediateTableName();
 
 	@Key(DB_SSL)
 	public Boolean getDBSSL();
